@@ -1,10 +1,10 @@
 [tool.poetry]
-name = "opencv-flow"
+name = "qt-node-editor"
 version = "0.1.0"
 description = ""
 authors = ["Your Name <you@example.com>"]
 readme = "README.md"
-packages = [{include = "opencv_flow", from = "src"}]
+packages = [{include = "qt_node_editor", from = "src"}]
 
 [tool.poetry.dependencies]
 python = "^3.10"

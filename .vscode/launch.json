@@ -8,7 +8,7 @@
             "name": "Python: Current File",
             "type": "python",
             "request": "launch",
-            "program": "src/opencv_flow/main.py",
+            "program": "src/qt_node_editor/main.py",
             "console": "integratedTerminal",
             "justMyCode": true
         }

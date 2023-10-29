@@ -7,8 +7,8 @@ from qtpy.QtWidgets import (QGraphicsItem, QGraphicsLineItem,
                             QGraphicsTextItem, QPushButton, QTextEdit,
                             QVBoxLayout, QWidget)
 
-from opencv_flow.node_graphics_scene import QDMGraphicsScene
-from opencv_flow.node_graphics_view import QDMGraphicsView
+from qt_node_editor.node_graphics_scene import QDMGraphicsScene
+from qt_node_editor.node_graphics_view import QDMGraphicsView
 
 GraphicsItemFlag = QGraphicsItem.GraphicsItemFlag
 
