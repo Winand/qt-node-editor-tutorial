@@ -1,13 +1,20 @@
 import math
+# https://adamj.eu/tech/2021/05/13/python-type-hints-how-to-fix-circular-imports/
+from typing import TYPE_CHECKING
 
 from qtpy.QtCore import QLine, QObject, QRectF
 from qtpy.QtGui import QColor, QPainter, QPen
 from qtpy.QtWidgets import QGraphicsScene
 
+if TYPE_CHECKING:
+    from qt_node_editor.node_scene import Scene
+
 
 class QDMGraphicsScene(QGraphicsScene):
-    def __init__(self, parent: QObject | None = None):
+    def __init__(self, scene: "Scene", parent: QObject | None = None):
         super().__init__(parent)
+
+        self.scene = scene
 
         # settings
         self.grid_size = 20
@@ -21,12 +28,10 @@ class QDMGraphicsScene(QGraphicsScene):
         self._pen_dark = QPen(self._color_dark)
         self._pen_dark.setWidth(2)
 
-        self.scene_width, self.scene_height = 64000, 64000
-        self.setSceneRect(-self.scene_width // 2, -self.scene_height // 2,
-                          self.scene_width, self.scene_height)
-
         self.setBackgroundBrush(self._color_background)
 
+    def set_rect(self, width: int, height: int):
+        self.setSceneRect(-width // 2, -height // 2, width, height)
 
     def drawBackground(self, painter: QPainter, rect: QRectF) -> None:
         super().drawBackground(painter, rect)
