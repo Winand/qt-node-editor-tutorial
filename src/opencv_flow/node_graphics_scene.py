@@ -51,7 +51,10 @@ class QDMGraphicsScene(QGraphicsScene):
             else:
                 lines_dark.append(QLine(left, y, right, y))
 
-        painter.setPen(self._pen_light)
-        painter.drawLines(*lines_light)
-        painter.setPen(self._pen_dark)
-        painter.drawLines(*lines_dark)
+        if lines_light:  # check if there are any lines, or `drawLines` crashes
+            painter.setPen(self._pen_light)
+            # see also sip.array https://github.com/pyqtgraph/pyqtgraph/blob/906749fc0ab1334a3323d6a9c973a8fad70f3a5b/pyqtgraph/Qt/internals.py#L82
+            painter.drawLines(*lines_light)
+        if lines_dark:
+            painter.setPen(self._pen_dark)
+            painter.drawLines(*lines_dark)
