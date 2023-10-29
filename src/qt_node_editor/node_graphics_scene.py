@@ -31,6 +31,9 @@ class QDMGraphicsScene(QGraphicsScene):
         self.setBackgroundBrush(self._color_background)
 
     def set_rect(self, width: int, height: int):
+        """
+        Set scene rect with center in x=0, y=0.
+        """
         self.setSceneRect(-width // 2, -height // 2, width, height)
 
     def drawBackground(self, painter: QPainter, rect: QRectF) -> None:
@@ -56,10 +59,11 @@ class QDMGraphicsScene(QGraphicsScene):
             else:
                 lines_dark.append(QLine(left, y, right, y))
 
-        if lines_light:  # check if there are any lines, or `drawLines` crashes
+        # check if there are any lines, or `drawLines` crashes
+        if lines_light:
             painter.setPen(self._pen_light)
             # see also sip.array https://github.com/pyqtgraph/pyqtgraph/blob/906749fc0ab1334a3323d6a9c973a8fad70f3a5b/pyqtgraph/Qt/internals.py#L82
-            painter.drawLines(*lines_light)
+            painter.drawLines(*lines_light)  # FIXME: do not draw if scale is small
         if lines_dark:
             painter.setPen(self._pen_dark)
             painter.drawLines(*lines_dark)

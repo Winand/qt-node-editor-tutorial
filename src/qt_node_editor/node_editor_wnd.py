@@ -7,8 +7,9 @@ from qtpy.QtWidgets import (QGraphicsItem, QGraphicsLineItem,
                             QGraphicsTextItem, QPushButton, QTextEdit,
                             QVBoxLayout, QWidget)
 
-from qt_node_editor.node_scene import Scene
 from qt_node_editor.node_graphics_view import QDMGraphicsView
+from qt_node_editor.node_node import Node
+from qt_node_editor.node_scene import Scene
 
 GraphicsItemFlag = QGraphicsItem.GraphicsItemFlag
 
@@ -26,17 +27,19 @@ class NodeEditorWnd(QWidget):
 
         # create graphics scene
         self.scene = Scene()
-        self.gr_scene = self.scene.gr_scene
+        # self.gr_scene = self.scene.gr_scene
+
+        node = Node(self.scene, "My Awesome Node")
 
         # create graphics view
-        self.view = QDMGraphicsView(self.gr_scene, self)
+        self.view = QDMGraphicsView(self.scene.gr_scene, self)
         self._layout.addWidget(self.view)
 
         self.setWindowTitle("Node Editor")
         self.show()
 
 
-        self.add_debug_content()
+        # self.add_debug_content()
 
 
     def add_debug_content(self):
