@@ -6,8 +6,9 @@ from typing import TYPE_CHECKING
 
 from qtpy.QtCore import QRectF, Qt
 from qtpy.QtGui import QBrush, QColor, QFont, QPainter, QPainterPath, QPen
-from qtpy.QtWidgets import (QGraphicsItem, QGraphicsTextItem,
-                            QStyleOptionGraphicsItem, QWidget)
+from qtpy.QtWidgets import (QGraphicsItem, QGraphicsProxyWidget,
+                            QGraphicsTextItem, QStyleOptionGraphicsItem,
+                            QWidget)
 
 if TYPE_CHECKING:
     from qt_node_editor.node_node import Node
@@ -16,9 +17,10 @@ GraphicsItemFlag = QGraphicsItem.GraphicsItemFlag
 
 
 class QDMGraphicsNode(QGraphicsItem):
-    def __init__(self, node: "Node", title="Node Graphic Item",
-                 parent: QGraphicsItem | None = None) -> None:
+    def __init__(self, node: "Node", parent: QGraphicsItem | None = None) -> None:
         super().__init__(parent)
+        self.node = node
+        self.content = node.content
 
         self.width = 180
         self.height = 240
@@ -35,9 +37,20 @@ class QDMGraphicsNode(QGraphicsItem):
         # https://rigaux.org/font-family-compatibility-between-linux-.html
         self._title_font = QFont("Helvetica", 10)
         self.init_title()
-        self.title = title
+        self.title = self.node.title
+
+        self.init_content()
 
         self.init_ui()
+
+    @property
+    def title(self):
+        return self._title
+
+    @title.setter
+    def title(self, value: str):
+        self._title = value
+        self.title_item.setPlainText(self._title)
 
     def boundingRect(self) -> QRectF:  # required
         """
@@ -64,14 +77,14 @@ class QDMGraphicsNode(QGraphicsItem):
             self.width - 2 * self._padding
         )
 
-    @property
-    def title(self):
-        return self._title
-
-    @title.setter
-    def title(self, value: str):
-        self._title = value
-        self.title_item.setPlainText(self._title)
+    def init_content(self):
+        self.gr_content = QGraphicsProxyWidget(self)
+        self.content.setGeometry(
+            int(self.edge_size), int(self.title_height + self.edge_size),
+            int(self.width - 2 * self.edge_size),
+            int(self.height - 2 * self.edge_size - self.title_height)
+        )
+        self.gr_content.setWidget(self.content)
 
     def paint(self, painter: QPainter, option: QStyleOptionGraphicsItem | None,
               widget: QWidget | None = None) -> None:  # required

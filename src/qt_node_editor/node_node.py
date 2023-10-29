@@ -1,5 +1,6 @@
 from qt_node_editor.node_graphics_node import QDMGraphicsNode
 from qt_node_editor.node_scene import Scene
+from qt_node_editor.node_content_widget import QDMContentWidget
 
 
 class Node():
@@ -7,11 +8,10 @@ class Node():
         self.scene = scene
         self.title = title
 
-        self.gr_node = QDMGraphicsNode(self, self.title)
+        self.content = QDMContentWidget()
+        self.gr_node = QDMGraphicsNode(self)
         self.scene.add_node(self)
         self.scene.gr_scene.addItem(self.gr_node)
-
-        self.gr_node.title = 'abracadabra'
 
         self.inputs = []
         self.outputs = []
