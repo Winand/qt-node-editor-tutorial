@@ -17,6 +17,7 @@ GraphicsItemFlag = QGraphicsItem.GraphicsItemFlag
 
 
 class QDMGraphicsNode(QGraphicsItem):
+    "Representation of a node in a graphics scene."
     def __init__(self, node: "Node", parent: QGraphicsItem | None = None) -> None:
         super().__init__(parent)
         self.node = node
@@ -26,7 +27,7 @@ class QDMGraphicsNode(QGraphicsItem):
         self.height = 240
         self.edge_size = 10.0
         self.title_height = 24.0
-        self._padding = 4.0
+        self._padding = 4.0  # title x-padding
 
         self._pen_default = QPen(QColor("#7F000000"))
         self._pen_selected = QPen(QColor("#FFFFA637"))
@@ -39,12 +40,13 @@ class QDMGraphicsNode(QGraphicsItem):
         self.init_title()
         self.title = self.node.title
 
+        self.init_sockets()
         self.init_content()
-
         self.init_ui()
 
     @property
     def title(self):
+        "Set text in node header area."
         return self._title
 
     @title.setter
@@ -56,10 +58,8 @@ class QDMGraphicsNode(QGraphicsItem):
         """
         Outer bounds of the item.
         """
-        return QRectF(0, 0,
-                      2 * self.edge_size + self.width,
-                      2 * self.edge_size + self.height
-                      ).normalized()  # swap values if width/height is negative
+        return QRectF(0, 0, self.width, self.height) \
+            .normalized()  # swap values if width/height is negative (needed?)
 
     def init_ui(self):
         self.setFlag(GraphicsItemFlag.ItemIsSelectable)
@@ -85,6 +85,9 @@ class QDMGraphicsNode(QGraphicsItem):
             int(self.height - 2 * self.edge_size - self.title_height)
         )
         self.gr_content.setWidget(self.content)
+
+    def init_sockets(self):
+        pass
 
     def paint(self, painter: QPainter, option: QStyleOptionGraphicsItem | None,
               widget: QWidget | None = None) -> None:  # required

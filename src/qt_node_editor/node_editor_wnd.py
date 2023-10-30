@@ -11,6 +11,7 @@ from qtpy.QtWidgets import (QApplication, QGraphicsItem, QGraphicsLineItem,
 from qt_node_editor.node_graphics_view import QDMGraphicsView
 from qt_node_editor.node_node import Node
 from qt_node_editor.node_scene import Scene
+from qt_node_editor.node_socket import Socket
 
 GraphicsItemFlag = QGraphicsItem.GraphicsItemFlag
 
@@ -32,7 +33,8 @@ class NodeEditorWnd(QWidget):
         self.scene = Scene()
         # self.gr_scene = self.scene.gr_scene
 
-        node = Node(self.scene, "My Awesome Node")
+        node = Node(self.scene, "My Awesome Node",
+                    inputs=[1, 2, 3], outputs=[1])
 
         # create graphics view
         self.view = QDMGraphicsView(self.scene.gr_scene, self)
