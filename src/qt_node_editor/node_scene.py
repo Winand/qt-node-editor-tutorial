@@ -1,3 +1,6 @@
+"""
+Scene
+"""
 from .node_graphics_scene import QDMGraphicsScene
 
 class Scene:

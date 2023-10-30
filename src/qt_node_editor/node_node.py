@@ -1,3 +1,6 @@
+"""
+Node
+"""
 from qt_node_editor.node_graphics_node import QDMGraphicsNode
 from qt_node_editor.node_scene import Scene
 from qt_node_editor.node_socket import Socket, POS
@@ -46,4 +49,4 @@ class Node():
         else:
             y = self.gr_node.title_height + self.gr_node._padding + \
                 self.gr_node.edge_size + index * self.socket_spacing
-        return x, y
+        return [x, y]

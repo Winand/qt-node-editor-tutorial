@@ -1,9 +1,13 @@
+"""
+Socket
+"""
 from enum import Enum, auto
 from typing import TYPE_CHECKING
 
 from qt_node_editor.node_graphics_socket import QDMGraphicsSocket
 
 if TYPE_CHECKING:
+    from qt_node_editor.node_edge import Edge
     from qt_node_editor.node_node import Node
 
 
@@ -21,3 +25,11 @@ class Socket():
         self.position = position
         self.gr_socket = QDMGraphicsSocket(node.gr_node)
         self.gr_socket.setPos(*self.node.get_socket_position(index, position))
+
+        self.edge = None
+
+    def get_socket_position(self):
+        return self.node.get_socket_position(self.index, self.position)
+
+    def set_connected_edge(self, edge: "Edge"):
+        self.edge = edge

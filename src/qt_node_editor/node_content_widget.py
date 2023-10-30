@@ -1,3 +1,6 @@
+"""
+Content of a node (widgets)
+"""
 from qtpy.QtWidgets import QLabel, QTextEdit, QVBoxLayout, QWidget
 
 
