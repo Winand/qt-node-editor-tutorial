@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 from qtpy.QtCore import QRectF, Qt
 from qtpy.QtGui import QBrush, QColor, QFont, QPainter, QPainterPath, QPen
-from qtpy.QtWidgets import (QGraphicsItem, QGraphicsProxyWidget,
+from qtpy.QtWidgets import (QGraphicsItem, QGraphicsProxyWidget, QGraphicsSceneMouseEvent,
                             QGraphicsTextItem, QStyleOptionGraphicsItem,
                             QWidget)
 
@@ -43,6 +43,10 @@ class QDMGraphicsNode(QGraphicsItem):
         self.init_sockets()
         self.init_content()
         self.init_ui()
+
+    def mouseMoveEvent(self, event: QGraphicsSceneMouseEvent | None) -> None:
+        super().mouseMoveEvent(event)
+        self.node.update_connected_edges()
 
     @property
     def title(self):

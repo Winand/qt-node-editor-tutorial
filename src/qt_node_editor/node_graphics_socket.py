@@ -4,12 +4,20 @@ from qtpy.QtWidgets import QGraphicsItem, QStyleOptionGraphicsItem, QWidget
 
 
 class QDMGraphicsSocket(QGraphicsItem):
-    def __init__(self, parent: QGraphicsItem | None = None) -> None:
+    def __init__(self, parent: QGraphicsItem | None = None, socket_type=1) -> None:
         super().__init__(parent)
 
         self.radius = 6.0
         self.outline_width = 1.0
-        self._color_background = QColor("#FFFF7700")
+        self._colors = [
+            QColor("#FFFF7700"),
+            QColor("#FF52E220"),
+            QColor("#FF0056A6"),
+            QColor("#FFA86DB1"),
+            QColor("#FFB54747"),
+            QColor("#FFDBE220"),
+        ]
+        self._color_background = self._colors[socket_type]
         self._color_outline = QColor("#FF000000")
 
         self._pen = QPen(self._color_outline)

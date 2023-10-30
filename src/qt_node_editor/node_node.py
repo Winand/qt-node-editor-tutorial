@@ -9,8 +9,8 @@ from qt_node_editor.node_content_widget import QDMContentWidget
 
 class Node():
     def __init__(self, scene: Scene, title="Undefined Node",
-                 inputs: list[Socket] | None = None,
-                 outputs: list[Socket] | None = None) -> None:
+                 inputs: list[int] | None = None,
+                 outputs: list[int] | None = None) -> None:
         self.scene = scene
         self.title = title
 
@@ -21,13 +21,15 @@ class Node():
 
         self.socket_spacing = 22
 
-        self.inputs = []
-        self.outputs = []
+        self.inputs: list[Socket] = []
+        self.outputs: list[Socket] = []
         for counter, item in enumerate(inputs or []):
-            socket = Socket(self, index=counter, position=POS.LEFT_BOTTOM)
+            socket = Socket(self, index=counter, position=POS.LEFT_BOTTOM,
+                            socket_type=item)
             self.inputs.append(socket)
         for counter, item in enumerate(outputs or []):
-            socket = Socket(self, index=counter, position=POS.RIGHT_TOP)
+            socket = Socket(self, index=counter, position=POS.RIGHT_TOP,
+                            socket_type=item)
             self.outputs.append(socket)
 
     @property
@@ -50,3 +52,9 @@ class Node():
             y = self.gr_node.title_height + self.gr_node._padding + \
                 self.gr_node.edge_size + index * self.socket_spacing
         return [x, y]
+
+    def update_connected_edges(self):
+        "Update location of edges connected to the node."
+        for socket in self.inputs + self.outputs:
+            if socket.has_edge():
+                socket.edge.update_positions()

@@ -19,11 +19,14 @@ class POS(Enum):
 
 
 class Socket():
-    def __init__(self, node: "Node", index = 0, position=POS.LEFT_TOP) -> None:
+    def __init__(self, node: "Node", index = 0, position=POS.LEFT_TOP,
+                 socket_type=1) -> None:
         self.node = node
         self.index = index
         self.position = position
-        self.gr_socket = QDMGraphicsSocket(node.gr_node)
+        self.socket_type = socket_type
+
+        self.gr_socket = QDMGraphicsSocket(node.gr_node, socket_type)
         self.gr_socket.setPos(*self.node.get_socket_position(index, position))
 
         self.edge = None
@@ -33,3 +36,7 @@ class Socket():
 
     def set_connected_edge(self, edge: "Edge"):
         self.edge = edge
+
+    def has_edge(self):
+        "Check if an edge is connected to the socket."
+        return self.edge is not None

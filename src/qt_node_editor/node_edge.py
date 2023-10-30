@@ -21,11 +21,16 @@ class Edge:
         self.scene = scene
         self.start_socket = start_socket
         self.end_socket = end_socket
+        self.start_socket.edge = self
+        if self.end_socket is not None:
+            self.end_socket.edge = self
 
         if shape == EdgeType.Direct:
             self.gr_edge = QDMGraphicsEdgeDirect(self)
         elif shape == EdgeType.Bezier:
             self.gr_edge = QDMGraphicsEdgeBezier(self)
+        else:
+            raise ValueError(f"Unknown edge type: {shape}")
         self.update_positions()
         # print(f"Edge: {self.gr_edge.pos_source} to {self.gr_edge.pos_destination}")
         self.scene.gr_scene.addItem(self.gr_edge)
