@@ -11,7 +11,7 @@ from qtpy.QtWidgets import (QApplication, QGraphicsItem, QGraphicsLineItem,
 from qt_node_editor.node_graphics_view import QDMGraphicsView
 from qt_node_editor.node_node import Node
 from qt_node_editor.node_scene import Scene
-from qt_node_editor.node_socket import Socket
+from qt_node_editor.node_edge import Edge, EdgeType
 
 GraphicsItemFlag = QGraphicsItem.GraphicsItemFlag
 
@@ -33,8 +33,7 @@ class NodeEditorWnd(QWidget):
         self.scene = Scene()
         # self.gr_scene = self.scene.gr_scene
 
-        node = Node(self.scene, "My Awesome Node",
-                    inputs=[1, 2, 3], outputs=[1])
+        self.add_nodes()
 
         # create graphics view
         self.view = QDMGraphicsView(self.scene.gr_scene, self)
@@ -45,6 +44,20 @@ class NodeEditorWnd(QWidget):
 
         # self.add_debug_content()
 
+    def add_nodes(self):
+        node1 = Node(self.scene, "My Awesome Node 1",
+                    inputs=[1, 2, 3], outputs=[1])
+        node2 = Node(self.scene, "My Awesome Node 2",
+                    inputs=[1, 2, 3], outputs=[1])
+        node3 = Node(self.scene, "My Awesome Node 3",
+                    inputs=[1, 2, 3], outputs=[1])
+        node1.set_pos(-350, -250)
+        node2.set_pos(-75, 0)
+        node3.set_pos(200, -150)
+
+        edge1 = Edge(self.scene, node1.outputs[0], node2.inputs[0])
+        edge2 = Edge(self.scene, node2.outputs[0], node3.inputs[0],
+                     shape=EdgeType.Bezier)
 
     def add_debug_content(self):
         green_brush = QBrush(Qt.GlobalColor.green)  # see also QtGui.QColorConstants

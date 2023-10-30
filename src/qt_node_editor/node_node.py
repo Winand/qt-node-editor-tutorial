@@ -27,6 +27,14 @@ class Node():
             socket = Socket(self, index=counter, position=POS.RIGHT_TOP)
             self.outputs.append(socket)
 
+    @property
+    def pos(self):
+        "Node position in a scene"
+        return self.gr_node.pos()
+
+    def set_pos(self, x: float, y: float):
+        self.gr_node.setPos(x, y)
+
     def get_socket_position(self, index: int, position: POS):
         "Get socket element x,y position by its index."
         x = 0 if position in (POS.LEFT_TOP, POS.LEFT_BOTTOM) else \
