@@ -1,8 +1,19 @@
-from qtpy.QtCore import Qt, QEvent
-from qtpy.QtGui import QPainter, QMouseEvent, QWheelEvent
+from enum import Enum, auto
+
+from qtpy.QtCore import QEvent, QPointF, Qt
+from qtpy.QtGui import QMouseEvent, QPainter, QWheelEvent
 from qtpy.QtWidgets import QGraphicsScene, QGraphicsView, QWidget
 
+from qt_node_editor.node_graphics_socket import QDMGraphicsSocket
+
 RenderHint = QPainter.RenderHint
+
+class Mode(Enum):
+    NOOP = auto()
+    EDGE_DRAG = auto()
+
+EDGE_DRAG_START_THRESHOLD = 10  # px
+
 
 class QDMGraphicsView(QGraphicsView):
     def __init__(self, scene: QGraphicsScene, parent: QWidget | None):
@@ -11,6 +22,9 @@ class QDMGraphicsView(QGraphicsView):
 
         self.init_ui()
         self.setScene(self.gr_scene)
+
+        self.mode = Mode.NOOP
+        self.last_lmb_click_scene_pos = QPointF()
 
         self.zoom_in_factor = 1.25
         self.zoom_clamp = True
@@ -82,16 +96,59 @@ class QDMGraphicsView(QGraphicsView):
         self.setDragMode(QGraphicsView.DragMode.NoDrag)
 
     def left_mouse_button_press(self, event: QMouseEvent):
-        return super().mousePressEvent(event)
+        item = self.get_item_at_click(event)
+        self.last_lmb_click_scene_pos = self.mapToScene(event.pos())
+        if isinstance(item, QDMGraphicsSocket):
+            if self.mode == Mode.NOOP:
+                self.mode = Mode.EDGE_DRAG
+                self.edge_drag_start()
+                return
+
+        if self.mode == Mode.EDGE_DRAG:
+            if self.edge_drag_end(item):
+                return
+
+        super().mousePressEvent(event)  # pass to upper level
 
     def left_mouse_button_release(self, event: QMouseEvent):
-        return super().mouseReleaseEvent(event)
+        item = self.get_item_at_click(event)
+        if self.mode == Mode.EDGE_DRAG:
+            if self.distance_between_click_and_release_is_off(event):
+                if self.edge_drag_end(item):
+                    return
+        super().mouseReleaseEvent(event)
 
     def middle_mouse_button_press(self, event: QMouseEvent):
-        return super().mousePressEvent(event)
+        super().mousePressEvent(event)
 
     def middle_mouse_button_release(self, event: QMouseEvent):
-        return super().mouseReleaseEvent(event)
+        super().mouseReleaseEvent(event)
+
+    def get_item_at_click(self, event: QMouseEvent):
+        "Return graphics item under cursor."
+        pos = event.pos()
+        obj = self.itemAt(pos)
+        return obj
+
+    def edge_drag_start(self):
+        print("Start dragging edge")
+        print("  assign Start Socket")
+
+    def edge_drag_end(self, item):
+        "Return True if skip the rest of the code."
+        self.mode = Mode.NOOP
+        print("End dragging edge")
+        if isinstance(item, QDMGraphicsSocket):
+            print("  assign end socket")
+            return True
+        return False
+    
+    def distance_between_click_and_release_is_off(self, event):
+        "Measures if we are too far from the last LMB click scene position."
+        new_lmb_release_scene_pos = self.mapToScene(event.pos())
+        dist_scene = new_lmb_release_scene_pos - self.last_lmb_click_scene_pos
+        return (dist_scene.x() ** 2 + dist_scene.y() ** 2) \
+                > EDGE_DRAG_START_THRESHOLD**2
 
     def wheelEvent(self, event: QWheelEvent) -> None:
         zoom_out_factor = 1 / self.zoom_in_factor
