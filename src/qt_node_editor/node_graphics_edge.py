@@ -41,6 +41,12 @@ class QDMGraphicsEdge(QGraphicsPathItem):
         "Handles drawing QPainterPath from point A to B"
         raise NotImplementedError("This method has to be overridden in a child class")
 
+    def boundingRect(self):
+        "Returns item area (required for correct updates)"
+        return QRectF(
+            QPointF(*self.pos_source), QPointF(*self.pos_destination)
+        ).normalized()
+
 
 class QDMGraphicsEdgeDirect(QDMGraphicsEdge):
     def update_path(self):
