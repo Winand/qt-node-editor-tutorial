@@ -151,14 +151,20 @@ class QDMGraphicsView(QGraphicsView):
                 > EDGE_DRAG_START_THRESHOLD**2
 
     def wheelEvent(self, event: QWheelEvent) -> None:
-        zoom_out_factor = 1 / self.zoom_in_factor
-        if event.angleDelta().y() > 0:
+        y_delta = event.angleDelta().y()
+        if y_delta > 0:
             zoom_factor = self.zoom_in_factor
             self.zoom += self.zoom_step
-        else:
+        elif y_delta < 0:
+            zoom_out_factor = 1 / self.zoom_in_factor
             zoom_factor = zoom_out_factor
             self.zoom -= self.zoom_step
-        
+        else: # horizontal scroll
+            # FIXME: not very precise when scrolling back and forth
+            center = self.mapToScene(self.rect()).boundingRect().center()
+            self.centerOn(center.x() - event.angleDelta().x(), center.y())
+            return
+
         clamped = False
         if self.zoom < self.zoom_range.start:
             self.zoom, clamped = self.zoom_range.start, True
