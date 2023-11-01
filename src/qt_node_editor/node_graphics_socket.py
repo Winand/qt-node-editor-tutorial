@@ -1,11 +1,17 @@
+from typing import TYPE_CHECKING
+
 from qtpy.QtCore import QRectF
 from qtpy.QtGui import QBrush, QColor, QPainter, QPen
 from qtpy.QtWidgets import QGraphicsItem, QStyleOptionGraphicsItem, QWidget
 
+if TYPE_CHECKING:
+    from qt_node_editor.node_socket import Socket
+
 
 class QDMGraphicsSocket(QGraphicsItem):
-    def __init__(self, parent: QGraphicsItem | None = None, socket_type=1) -> None:
-        super().__init__(parent)
+    def __init__(self, socket: "Socket", socket_type=1) -> None:
+        super().__init__(socket.node.gr_node)
+        self.socket = socket
 
         self.radius = 6.0
         self.outline_width = 1.0

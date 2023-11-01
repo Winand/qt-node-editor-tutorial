@@ -16,7 +16,7 @@ class EdgeType(Enum):
 
 
 class Edge:
-    def __init__(self, scene: Scene, start_socket: Socket, end_socket: Socket,
+    def __init__(self, scene: Scene, start_socket: Socket, end_socket: Socket | None,
                  shape=EdgeType.Direct) -> None:
         self.scene = scene
         self.start_socket = start_socket
@@ -34,6 +34,13 @@ class Edge:
         self.update_positions()
         # print(f"Edge: {self.gr_edge.pos_source} to {self.gr_edge.pos_destination}")
         self.scene.gr_scene.addItem(self.gr_edge)
+        self.scene.add_edge(self)
+
+    def __str__(self):
+        start_sock = hex(id(self.start_socket))[-3:] if self.start_socket else None
+        end_sock = hex(id(self.end_socket))[-3:] if self.end_socket else None
+        return (f"<Edge ..{hex(id(self))[-5:]} "
+                f"(sockets {start_sock} <--> {end_sock})>")
 
     def update_positions(self):
         "Update start and end points of the edge on a scene"
@@ -41,6 +48,7 @@ class Edge:
             # @Winand
             # disconnect_from_sockets sets start_socket to None
             # remove sets gr_edge to None
+            # FIXME: raises after two clicks on the same socket
             raise ValueError
         source_pos = self.start_socket.get_socket_position()
         source_pos[0] += self.start_socket.node.gr_node.pos().x()
@@ -51,6 +59,9 @@ class Edge:
             end_pos[0] += self.end_socket.node.gr_node.pos().x()
             end_pos[1] += self.end_socket.node.gr_node.pos().y()
             self.gr_edge.set_destination(*end_pos)
+        else:  # dragging mode
+            print("dragging")
+            self.gr_edge.set_destination(*source_pos)
         self.gr_edge.update()
 
     def disconnect_from_sockets(self):

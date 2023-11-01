@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from qt_node_editor.node_node import Node
 
 
-class POS(Enum):
+class Pos(Enum):
     LEFT_TOP = auto()
     LEFT_BOTTOM = auto()
     RIGHT_TOP = auto()
@@ -19,17 +19,20 @@ class POS(Enum):
 
 
 class Socket():
-    def __init__(self, node: "Node", index = 0, position=POS.LEFT_TOP,
+    def __init__(self, node: "Node", index = 0, position=Pos.LEFT_TOP,
                  socket_type=1) -> None:
         self.node = node
         self.index = index
         self.position = position
         self.socket_type = socket_type
 
-        self.gr_socket = QDMGraphicsSocket(node.gr_node, socket_type)
+        self.gr_socket = QDMGraphicsSocket(self, socket_type)
         self.gr_socket.setPos(*self.node.get_socket_position(index, position))
 
         self.edge = None
+
+    def __str__(self):
+        return f"<Socket ..{hex(id(self))[-5:]} '{self.node.title}'>"
 
     def get_socket_position(self):
         return self.node.get_socket_position(self.index, self.position)
