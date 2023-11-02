@@ -1,6 +1,4 @@
 from enum import Enum, auto
-import typing
-from PyQt6 import QtGui
 
 from qtpy.QtCore import QEvent, QPointF, Qt
 from qtpy.QtGui import QMouseEvent, QPainter, QWheelEvent
@@ -57,6 +55,9 @@ class QDMGraphicsView(QGraphicsView):
         # When zooming with `scale` use mouse position as anchor point
         self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
 
+        # Item selection rectangle
+        self.setDragMode(QGraphicsView.DragMode.RubberBandDrag)
+
     def mousePressEvent(self, event: QMouseEvent) -> None:
         if event.button() == Qt.MouseButton.LeftButton:
             self.left_mouse_button_press(event)
@@ -106,6 +107,13 @@ class QDMGraphicsView(QGraphicsView):
     def left_mouse_button_press(self, event: QMouseEvent):
         item = self.get_item_at_click(event)
         self.last_lmb_click_scene_pos = self.mapToScene(event.pos())
+        print(f"LMB Click on {item} {self.debug_modifiers(event)}")
+
+        if event.modifiers() & Qt.KeyboardModifier.ShiftModifier:
+            # Use Shift to select graphics items along with Ctrl
+            self.modify_mouse_event(event, Qt.KeyboardModifier.ControlModifier)
+            return
+
         if isinstance(item, QDMGraphicsSocket):
             if self.mode == Mode.NOOP:
                 self.mode = Mode.EDGE_DRAG
@@ -119,6 +127,11 @@ class QDMGraphicsView(QGraphicsView):
         super().mousePressEvent(event)  # pass to upper level
 
     def left_mouse_button_release(self, event: QMouseEvent):
+        if event.modifiers() & Qt.KeyboardModifier.ShiftModifier:
+            # Use Shift to select graphics items along with Ctrl
+            self.modify_mouse_event(event, Qt.KeyboardModifier.ControlModifier)
+            return
+
         item = self.get_item_at_click(event)
         if self.mode == Mode.EDGE_DRAG:
             if self.distance_between_click_and_release_is_off(event):
@@ -157,6 +170,14 @@ class QDMGraphicsView(QGraphicsView):
             self.drag_edge.gr_edge.set_destination(pos.x(), pos.y())
             self.drag_edge.gr_edge.update()
         return super().mouseMoveEvent(event)
+
+    def debug_modifiers(self, event: QMouseEvent):
+        out = "MODS: "
+        modifiers = event.modifiers()
+        for mod in Qt.KeyboardModifier:
+            if mod != Qt.KeyboardModifier.KeyboardModifierMask and modifiers & mod:
+                out += f"{mod.name.split('Modifier')[0]} "
+        return out
 
     def get_item_at_click(self, event: QMouseEvent):
         "Return graphics item under cursor."
@@ -240,3 +261,21 @@ class QDMGraphicsView(QGraphicsView):
             self.zoom, clamped = self.zoom_range.stop, True
         if not clamped or not self.zoom_clamp:
             self.scale(zoom_factor, zoom_factor)
+
+    # @Winand
+    def modify_mouse_event(self, event: QMouseEvent,
+                     add_modifier: Qt.KeyboardModifier):
+        "Add modifier key to the mouse event and call parent."
+        event_type = event.type()
+        event.ignore()
+        new_event = QMouseEvent(
+            event_type, event.position(), event.globalPosition(),
+            event.button(), event.buttons() | Qt.MouseButton.LeftButton,
+            event.modifiers() | add_modifier
+        )
+        if event_type == QEvent.Type.MouseButtonPress:
+            super().mousePressEvent(new_event)
+        elif event_type == QEvent.Type.MouseButtonRelease:
+            super().mouseReleaseEvent(new_event)
+        else:
+            raise ValueError(f"Event {event_type} not supported")

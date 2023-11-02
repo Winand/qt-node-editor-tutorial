@@ -46,7 +46,10 @@ class QDMGraphicsNode(QGraphicsItem):
 
     def mouseMoveEvent(self, event: QGraphicsSceneMouseEvent | None) -> None:
         super().mouseMoveEvent(event)
-        self.node.update_connected_edges()
+        # FIXME: optimize
+        for node in self.scene().scene.nodes:
+            if node.gr_node.isSelected():
+                node.update_connected_edges()
 
     @property
     def title(self):
