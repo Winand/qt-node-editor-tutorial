@@ -102,7 +102,7 @@ class QDMGraphicsView(QGraphicsView):
                                 event.buttons() & ~Qt.MouseButton.LeftButton,
                                 event.modifiers())
         super().mouseReleaseEvent(fake_event)
-        self.setDragMode(QGraphicsView.DragMode.NoDrag)
+        self.setDragMode(QGraphicsView.DragMode.RubberBandDrag)
 
     def left_mouse_button_press(self, event: QMouseEvent):
         item = self.get_item_at_click(event)
