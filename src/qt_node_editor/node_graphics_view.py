@@ -170,7 +170,7 @@ class QDMGraphicsView(QGraphicsView):
             print(f"View:edge_drag_start -   assign Start Socket to: {item.socket}")
         self.previous_edge = item.socket.edge  # FIXME: last_start_socket is enough?
         self.last_start_socket = item.socket
-        self.drag_edge = Edge(self._scene, item.socket, None, EdgeType.Bezier)
+        self.drag_edge = Edge(self._scene, item.socket, None, EdgeType.BEZIER)
         if DEBUG:
             print(f"View:edge_drag_start -   drag_edge: {self.drag_edge}")
 

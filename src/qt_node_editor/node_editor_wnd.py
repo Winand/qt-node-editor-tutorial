@@ -56,9 +56,9 @@ class NodeEditorWnd(QWidget):
         node3.set_pos(200, -150)
 
         edge1 = Edge(self.scene, node1.outputs[0], node2.inputs[0],
-                     shape=EdgeType.Bezier)
+                     shape=EdgeType.BEZIER)
         edge2 = Edge(self.scene, node2.outputs[0], node3.inputs[0],
-                     shape=EdgeType.Bezier)
+                     shape=EdgeType.BEZIER)
 
     def add_debug_content(self):
         green_brush = QBrush(Qt.GlobalColor.green)  # see also QtGui.QColorConstants

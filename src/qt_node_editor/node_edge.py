@@ -11,13 +11,13 @@ from qt_node_editor.node_socket import Socket
 
 class EdgeType(Enum):
     "Edge visual appearance"
-    Direct = auto()
-    Bezier = auto()
+    DIRECT = auto()
+    BEZIER = auto()
 
 
 class Edge:
     def __init__(self, scene: Scene, start_socket: Socket, end_socket: Socket | None,
-                 shape=EdgeType.Direct) -> None:
+                 shape=EdgeType.DIRECT) -> None:
         self.scene = scene
         self.start_socket = start_socket
         self.end_socket = end_socket
@@ -25,9 +25,9 @@ class Edge:
         if self.end_socket is not None:
             self.end_socket.edge = self
 
-        if shape == EdgeType.Direct:
+        if shape == EdgeType.DIRECT:
             self.gr_edge = QDMGraphicsEdgeDirect(self)
-        elif shape == EdgeType.Bezier:
+        elif shape == EdgeType.BEZIER:
             self.gr_edge = QDMGraphicsEdgeBezier(self)
         else:
             raise ValueError(f"Unknown edge type: {shape}")
@@ -49,7 +49,7 @@ class Edge:
             # disconnect_from_sockets sets start_socket to None
             # remove sets gr_edge to None
             # FIXME: raises after two clicks on the same socket
-            raise ValueError
+            raise ValueError(f"{self.start_socket=} {self.gr_edge=}")
         source_pos = self.start_socket.get_socket_position()
         source_pos[0] += self.start_socket.node.gr_node.pos().x()
         source_pos[1] += self.start_socket.node.gr_node.pos().y()
@@ -60,7 +60,6 @@ class Edge:
             end_pos[1] += self.end_socket.node.gr_node.pos().y()
             self.gr_edge.set_destination(*end_pos)
         else:  # dragging mode
-            print("dragging")
             self.gr_edge.set_destination(*source_pos)
         self.gr_edge.update()
 
