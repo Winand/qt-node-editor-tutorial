@@ -10,7 +10,10 @@
             "request": "launch",
             "program": "src/qt_node_editor/main.py",
             "console": "integratedTerminal",
-            "justMyCode": true
+            "justMyCode": true,
+            "args": [
+                "--debug"
+            ]
         }
     ]
 }

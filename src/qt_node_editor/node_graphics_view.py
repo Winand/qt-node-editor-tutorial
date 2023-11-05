@@ -1,4 +1,5 @@
 from enum import Enum, auto
+import logging
 
 from qtpy.QtCore import QEvent, QPointF, Qt
 from qtpy.QtGui import QMouseEvent, QPainter, QWheelEvent
@@ -10,15 +11,13 @@ from qt_node_editor.node_graphics_socket import QDMGraphicsSocket
 from qt_node_editor.node_scene import Scene
 
 RenderHint = QPainter.RenderHint
+log = logging.getLogger(__name__)
 
 class Mode(Enum):
     NOOP = auto()
     EDGE_DRAG = auto()
 
 EDGE_DRAG_START_THRESHOLD = 10  # px
-
-
-DEBUG = True
 
 
 class QDMGraphicsView(QGraphicsView):
@@ -107,7 +106,7 @@ class QDMGraphicsView(QGraphicsView):
     def left_mouse_button_press(self, event: QMouseEvent):
         item = self.get_item_at_click(event)
         self.last_lmb_click_scene_pos = self.mapToScene(event.pos())
-        print(f"LMB Click on {item} {self.debug_modifiers(event)}")
+        log.debug("LMB Click on %s %s", item, self.debug_modifiers(event))
 
         if event.modifiers() & Qt.KeyboardModifier.ShiftModifier:
             # Use Shift to select graphics items along with Ctrl
@@ -142,7 +141,7 @@ class QDMGraphicsView(QGraphicsView):
     def middle_mouse_button_press(self, event: QMouseEvent):
         super().mousePressEvent(event)
         item = self.get_item_at_click(event)
-        if DEBUG:
+        if log.getEffectiveLevel() == logging.DEBUG:
             if isinstance(item, QDMGraphicsEdge):
                 print(f"MMB DEBUG: {item.edge}")
             elif isinstance(item, QDMGraphicsSocket):
@@ -186,14 +185,12 @@ class QDMGraphicsView(QGraphicsView):
         return obj
 
     def edge_drag_start(self, item: QDMGraphicsSocket):
-        if DEBUG:
-            print("View:edge_drag_start - Start dragging edge")
-            print(f"View:edge_drag_start -   assign Start Socket to: {item.socket}")
+        log.debug("Start dragging edge")
+        log.debug("  assign Start Socket to: %s", item.socket)
         self.previous_edge = item.socket.edge  # FIXME: last_start_socket is enough?
         self.last_start_socket = item.socket
         self.drag_edge = Edge(self._scene, item.socket, None, EdgeType.BEZIER)
-        if DEBUG:
-            print(f"View:edge_drag_start -   drag_edge: {self.drag_edge}")
+        log.debug("  drag_edge: %s", self.drag_edge)
 
     def edge_drag_end(self, item: QGraphicsItem | None):
         "Return True if skip the rest of the code."
@@ -204,35 +201,36 @@ class QDMGraphicsView(QGraphicsView):
             # Edge.remove sets gr_edge to None
             raise ValueError
 
-        if isinstance(item, QDMGraphicsSocket):
-            if DEBUG: print(f"View::edge_drag_end -   {self.previous_edge=}")
+        if isinstance(item, QDMGraphicsSocket) and \
+                item.socket is not self.last_start_socket:
+            log.debug("  previous_edge=%s", self.previous_edge)
             if item.socket.has_edge():
                 item.socket.edge.remove()
-            if DEBUG: print(f"View::edge_drag_end -   assign end socket {item.socket}")
+            log.debug("  assign end socket %s", item.socket)
             if self.previous_edge is not None:
                 self.previous_edge.remove()
-            if DEBUG: print(f"View::edge_drag_end -  previous edge removed")
+            log.debug(" previous edge removed")
             self.drag_edge.start_socket = self.last_start_socket
             self.drag_edge.end_socket = item.socket
             self.drag_edge.start_socket.set_connected_edge(self.drag_edge)
             self.drag_edge.end_socket.set_connected_edge(self.drag_edge)
-            if DEBUG: print("View::edge_drag_end -  reassigned start/end sockets to drag edge")
+            log.debug(" reassigned start/end sockets to drag edge")
             self.drag_edge.update_positions()
             return True
 
-        if DEBUG: print("View:edge_drag_end - End dragging edge")
+        # Cancel:
+        log.debug("End dragging edge")
         self.drag_edge.remove()
         self.drag_edge = None
-        if DEBUG: print("View:edge_drag_end - about to set socket to previous "
-                        f"edge: {self.previous_edge}")
+        log.debug("about to set socket to previous edge: %s", self.previous_edge)
         if self.previous_edge is not None:
             if not self.previous_edge.start_socket:
                 raise ValueError  # @Winand
             self.previous_edge.start_socket.edge = self.previous_edge
-        if DEBUG: print("View:edge_drag_end - everything done.")
+        log.debug("everything done.")
         return False
     
-    def distance_between_click_and_release_is_off(self, event):
+    def distance_between_click_and_release_is_off(self, event: QMouseEvent):
         "Measures if we are too far from the last LMB click scene position."
         new_lmb_release_scene_pos = self.mapToScene(event.pos())
         dist_scene = new_lmb_release_scene_pos - self.last_lmb_click_scene_pos

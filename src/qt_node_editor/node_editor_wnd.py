@@ -1,3 +1,4 @@
+import logging
 import pkgutil
 from typing import cast
 
@@ -14,6 +15,7 @@ from qt_node_editor.node_node import Node
 from qt_node_editor.node_scene import Scene
 
 GraphicsItemFlag = QGraphicsItem.GraphicsItemFlag
+log = logging.getLogger(__name__)
 
 
 class NodeEditorWnd(QWidget):
@@ -91,7 +93,7 @@ class NodeEditorWnd(QWidget):
         line.setFlag(GraphicsItemFlag.ItemIsMovable | GraphicsItemFlag.ItemIsSelectable)
 
     def loadStylesheet(self, filename: str):
-        print(f"Style loading: {filename}")
+        log.info("Style loading: %s", filename)
         # Load file from package https://stackoverflow.com/a/58941536
         if (stylesheet := pkgutil.get_data(__name__, filename)) is None:
             raise FileNotFoundError(f"Cannot load {filename}")
