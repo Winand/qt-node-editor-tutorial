@@ -9,8 +9,10 @@ packages = [{include = "qt_node_editor", from = "src"}]
 [tool.poetry.dependencies]
 python = "^3.10"
 qtpy = "^2.4.1"
-pyqt6 = "^6.5.3"
 
+
+[tool.poetry.group.dev.dependencies]
+pyqt6 = "^6.6.0"
 
 [build-system]
 requires = ["poetry-core"]
