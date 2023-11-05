@@ -59,11 +59,15 @@ class QDMGraphicsScene(QGraphicsScene):
             else:
                 lines_dark.append(QLine(left, y, right, y))
 
+        # get scale https://forum.qt.io/topic/7486/solved-qgraphicsview-and-scale/3
+        scale_factor = painter.transform().m11()  # m22
         # check if there are any lines, or `drawLines` crashes
-        if lines_light:
+        if lines_light and scale_factor > 0.5:
+            # self._color_light.setAlphaF(scale_factor)
+            # self._pen_light.setColor(self._color_light)
             painter.setPen(self._pen_light)
             # see also sip.array https://github.com/pyqtgraph/pyqtgraph/blob/906749fc0ab1334a3323d6a9c973a8fad70f3a5b/pyqtgraph/Qt/internals.py#L82
-            painter.drawLines(*lines_light)  # FIXME: do not draw if scale is small
+            painter.drawLines(*lines_light)
         if lines_dark:
             painter.setPen(self._pen_dark)
             painter.drawLines(*lines_dark)
