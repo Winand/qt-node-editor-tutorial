@@ -45,7 +45,7 @@ class QDMGraphicsEdge(QGraphicsPathItem):
 
     def paint(self, painter: QPainter, option: QStyleOptionGraphicsItem | None,
               widget: QWidget | None = None) -> None:
-        self.update_path()
+        self.setPath(self.calc_path())
         if self.edge.end_socket is None:
             painter.setPen(self._pen_dragging)
         else:
@@ -53,7 +53,13 @@ class QDMGraphicsEdge(QGraphicsPathItem):
         painter.setBrush(Qt.BrushStyle.NoBrush)
         painter.drawPath(self.path())
 
-    def update_path(self):
+    def intersects_with(self, p1: QPointF, p2: QPointF):
+        cutpath = QPainterPath(p1)
+        cutpath.lineTo(p2)
+        path = self.calc_path()
+        return cutpath.intersects(path)
+
+    def calc_path(self):
         "Handles drawing QPainterPath from point A to B"
         raise NotImplementedError("This method has to be overridden in a child class")
 
@@ -65,14 +71,14 @@ class QDMGraphicsEdge(QGraphicsPathItem):
 
 
 class QDMGraphicsEdgeDirect(QDMGraphicsEdge):
-    def update_path(self):
+    def calc_path(self):
         path = QPainterPath(QPointF(self.pos_source[0], self.pos_source[1]))
         path.lineTo(self.pos_destination[0], self.pos_destination[1])
-        self.setPath(path)
+        return path
 
 
 class QDMGraphicsEdgeBezier(QDMGraphicsEdge):
-    def update_path(self):
+    def calc_path(self):
         s = self.pos_source
         d = self.pos_destination
         dist = (d[0] - s[0]) * 0.5
@@ -108,4 +114,4 @@ class QDMGraphicsEdgeBezier(QDMGraphicsEdge):
             s[0] + cpx_s, s[1] + cpy_s, d[0] + cpx_d, d[1] + cpy_d,
             self.pos_destination[0], self.pos_destination[1]
         )
-        self.setPath(path)
+        return path

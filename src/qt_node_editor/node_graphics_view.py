@@ -3,9 +3,10 @@ from enum import Enum, auto
 
 from qtpy.QtCore import QEvent, QPointF, Qt
 from qtpy.QtGui import QKeyEvent, QMouseEvent, QPainter, QWheelEvent
-from qtpy.QtWidgets import QGraphicsItem, QGraphicsView, QWidget
+from qtpy.QtWidgets import QGraphicsItem, QGraphicsView, QWidget, QApplication
 
 from qt_node_editor.node_edge import Edge, EdgeType
+from qt_node_editor.node_graphics_cutline import QDMCutLine
 from qt_node_editor.node_graphics_edge import QDMGraphicsEdge
 from qt_node_editor.node_graphics_node import QDMGraphicsNode
 from qt_node_editor.node_graphics_socket import QDMGraphicsSocket
@@ -15,8 +16,9 @@ RenderHint = QPainter.RenderHint
 log = logging.getLogger(__name__)
 
 class Mode(Enum):
-    NOOP = auto()
+    NO_OP = auto()
     EDGE_DRAG = auto()
+    EDGE_CUT = auto()
 
 EDGE_DRAG_START_THRESHOLD = 10  # px
 
@@ -29,7 +31,7 @@ class QDMGraphicsView(QGraphicsView):
         self.init_ui()
         self.setScene(scene.gr_scene)
 
-        self.mode = Mode.NOOP
+        self.mode = Mode.NO_OP
         self.editing_flag = False
         self.last_lmb_click_scene_pos = QPointF()
 
@@ -38,6 +40,10 @@ class QDMGraphicsView(QGraphicsView):
         self.zoom = 10
         self.zoom_step = 1
         self.zoom_range = range(0, 10)
+
+        # cutline (it's always in the scene but has no points by default)
+        self.cutline = QDMCutLine()
+        self._scene.gr_scene.addItem(self.cutline)
 
     def init_ui(self):
         # https://doc.qt.io/qt-6/qpainter.html#RenderHint-enum
@@ -116,7 +122,7 @@ class QDMGraphicsView(QGraphicsView):
             return
 
         if isinstance(item, QDMGraphicsSocket):
-            if self.mode == Mode.NOOP:
+            if self.mode == Mode.NO_OP:
                 self.mode = Mode.EDGE_DRAG
                 self.edge_drag_start(item)
                 return
@@ -124,6 +130,19 @@ class QDMGraphicsView(QGraphicsView):
         if self.mode == Mode.EDGE_DRAG:
             if self.edge_drag_end(item):
                 return
+
+        if item is None and event.modifiers() & Qt.KeyboardModifier.ControlModifier:
+            # Ctrl + background click
+            self.mode  = Mode.EDGE_CUT
+            fake_event = QMouseEvent(
+                QEvent.Type.MouseButtonRelease,
+                event.position(), event.globalPosition(),
+                Qt.MouseButton.LeftButton, Qt.MouseButton.NoButton,
+                event.modifiers()
+            )
+            super().mouseReleaseEvent(fake_event)
+            QApplication.setOverrideCursor(Qt.CursorShape.CrossCursor)
+            return
 
         super().mousePressEvent(event)  # pass to upper level
 
@@ -138,6 +157,15 @@ class QDMGraphicsView(QGraphicsView):
             if self.distance_between_click_and_release_is_off(event):
                 if self.edge_drag_end(item):
                     return
+        
+        if self.mode == Mode.EDGE_CUT:
+            self.cut_intersecting_edges()
+            self.cutline.line_points = []
+            self.cutline.update()
+            QApplication.setOverrideCursor(Qt.CursorShape.ArrowCursor)
+            self.mode = Mode.NO_OP
+            return
+
         super().mouseReleaseEvent(event)
 
     def middle_mouse_button_press(self, event: QMouseEvent):
@@ -170,6 +198,11 @@ class QDMGraphicsView(QGraphicsView):
                 raise ValueError
             self.drag_edge.gr_edge.set_destination(pos.x(), pos.y())
             self.drag_edge.gr_edge.update()
+        
+        if self.mode == Mode.EDGE_CUT:
+            pos = self.mapToScene(event.pos())
+            self.cutline.line_points.append(pos)
+            self.cutline.update()
         return super().mouseMoveEvent(event)
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
@@ -177,6 +210,15 @@ class QDMGraphicsView(QGraphicsView):
             self.delete_selected()
         else:
             super().keyPressEvent(event)
+    
+    def cut_intersecting_edges(self):
+        for ix in range(len(self.cutline.line_points) - 1):
+            p1 = self.cutline.line_points[ix]
+            p2 = self.cutline.line_points[ix + 1]
+
+            for edge in self._scene.edges:
+                if edge.gr_edge.intersects_with(p1, p2):
+                    edge.remove()
 
     def delete_selected(self):
         for item in self._scene.gr_scene.selectedItems():
@@ -209,7 +251,7 @@ class QDMGraphicsView(QGraphicsView):
 
     def edge_drag_end(self, item: QGraphicsItem | None):
         "Return True if skip the rest of the code."
-        self.mode = Mode.NOOP
+        self.mode = Mode.NO_OP
         if not (self.drag_edge and self.drag_edge.gr_edge):
             # @Winand
             # edge_drag_start sets up drag_edge
