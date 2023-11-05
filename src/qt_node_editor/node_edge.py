@@ -1,6 +1,7 @@
 """
 Edge between nodes
 """
+import logging
 from enum import Enum, auto
 
 from qt_node_editor.node_graphics_edge import (QDMGraphicsEdgeBezier,
@@ -13,6 +14,8 @@ class EdgeType(Enum):
     "Edge visual appearance"
     DIRECT = auto()
     BEZIER = auto()
+
+log = logging.getLogger(__name__)
 
 
 class Edge:
@@ -32,7 +35,6 @@ class Edge:
         else:
             raise ValueError(f"Unknown edge type: {shape}")
         self.update_positions()
-        # print(f"Edge: {self.gr_edge.pos_source} to {self.gr_edge.pos_destination}")
         self.scene.gr_scene.addItem(self.gr_edge)
         self.scene.add_edge(self)
 
@@ -72,7 +74,15 @@ class Edge:
         self.start_socket = None
 
     def remove(self):
+        log.debug("# Removing Edge %s", self)
+        log.debug(" - remove edge from all sockets")
         self.disconnect_from_sockets()
+        log.debug(" - remove gr_edge")
         self.scene.gr_scene.removeItem(self.gr_edge)  # TODO: move to Scene.remove_edge?
         self.gr_edge = None
-        self.scene.remove_edge(self)
+        log.debug(" - remove edge from scene")
+        try:
+            self.scene.remove_edge(self)
+        except ValueError:
+            pass  # FIXME: eliminate exception handling here
+        log.debug(" - everything is done.")

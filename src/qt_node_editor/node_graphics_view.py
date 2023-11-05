@@ -1,12 +1,13 @@
-from enum import Enum, auto
 import logging
+from enum import Enum, auto
 
 from qtpy.QtCore import QEvent, QPointF, Qt
-from qtpy.QtGui import QMouseEvent, QPainter, QWheelEvent
+from qtpy.QtGui import QKeyEvent, QMouseEvent, QPainter, QWheelEvent
 from qtpy.QtWidgets import QGraphicsItem, QGraphicsView, QWidget
 
 from qt_node_editor.node_edge import Edge, EdgeType
 from qt_node_editor.node_graphics_edge import QDMGraphicsEdge
+from qt_node_editor.node_graphics_node import QDMGraphicsNode
 from qt_node_editor.node_graphics_socket import QDMGraphicsSocket
 from qt_node_editor.node_scene import Scene
 
@@ -29,6 +30,7 @@ class QDMGraphicsView(QGraphicsView):
         self.setScene(scene.gr_scene)
 
         self.mode = Mode.NOOP
+        self.editing_flag = False
         self.last_lmb_click_scene_pos = QPointF()
 
         self.zoom_in_factor = 1.25
@@ -169,6 +171,19 @@ class QDMGraphicsView(QGraphicsView):
             self.drag_edge.gr_edge.set_destination(pos.x(), pos.y())
             self.drag_edge.gr_edge.update()
         return super().mouseMoveEvent(event)
+
+    def keyPressEvent(self, event: QKeyEvent) -> None:
+        if event.key() == Qt.Key.Key_Delete and not self.editing_flag:
+            self.delete_selected()
+        else:
+            super().keyPressEvent(event)
+
+    def delete_selected(self):
+        for item in self._scene.gr_scene.selectedItems():
+            if isinstance(item, QDMGraphicsEdge):
+                item.edge.remove()
+            elif isinstance(item, QDMGraphicsNode):
+                item.node.remove()
 
     def debug_modifiers(self, event: QMouseEvent):
         out = "MODS: "

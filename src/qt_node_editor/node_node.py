@@ -1,10 +1,14 @@
 """
 Node
 """
+import logging
+
+from qt_node_editor.node_content_widget import QDMContentWidget
 from qt_node_editor.node_graphics_node import QDMGraphicsNode
 from qt_node_editor.node_scene import Scene
-from qt_node_editor.node_socket import Socket, Pos
-from qt_node_editor.node_content_widget import QDMContentWidget
+from qt_node_editor.node_socket import Pos, Socket
+
+log = logging.getLogger(__name__)
 
 
 class Node():
@@ -14,7 +18,7 @@ class Node():
         self.scene = scene
         self.title = title
 
-        self.content = QDMContentWidget()
+        self.content = QDMContentWidget(self)
         self.gr_node = QDMGraphicsNode(self)
         self.scene.add_node(self)
         self.scene.gr_scene.addItem(self.gr_node)
@@ -61,3 +65,17 @@ class Node():
         for socket in self.inputs + self.outputs:
             if socket.has_edge():
                 socket.edge.update_positions()
+
+    def remove(self):
+        log.debug("> Removing node %s", self)
+        log.debug(" - remove all edges from sockets")
+        for socket in (self.inputs + self.outputs):
+            if socket.has_edge():
+                log.debug("    - removing from socket %s edge %s", socket,  socket.edge)
+                socket.edge.remove()
+        log.debug(" - remove gr_node")
+        self.scene.gr_scene.removeItem(self.gr_node)
+        self.gr_node = None
+        log.debug(" - remove node from the scene")
+        self.scene.remove_node(self)
+        log.debug(" - everything was done.")

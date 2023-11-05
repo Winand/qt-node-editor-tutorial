@@ -1,11 +1,23 @@
 """
 Content of a node (widgets)
 """
+import logging
+from typing import TYPE_CHECKING, cast
+
+from qtpy.QtGui import QFocusEvent
 from qtpy.QtWidgets import QLabel, QTextEdit, QVBoxLayout, QWidget
+
+from qt_node_editor.node_graphics_view import QDMGraphicsView
+
+if TYPE_CHECKING:
+    from qt_node_editor.node_node import Node
+
+log = logging.getLogger(__name__)
 
 
 class QDMContentWidget(QWidget):
-    def __init__(self, parent: QWidget | None = None):
+    def __init__(self, node: "Node", parent: QWidget | None = None):
+        self.node = node
         super().__init__(parent)
 
         self.init_ui()
@@ -17,4 +29,20 @@ class QDMContentWidget(QWidget):
 
         self.wdg_label = QLabel("Some Title")
         self._layout.addWidget(self.wdg_label)
-        self._layout.addWidget(QTextEdit("foo"))
+        self._layout.addWidget(QDMTextEdit("foo"))
+
+    def set_editing_flag(self, value: bool):
+        # FIXME: flag is set on the 1st view
+        view = cast(QDMGraphicsView, self.node.scene.gr_scene.views()[0])
+        view.editing_flag = value
+
+
+class QDMTextEdit(QTextEdit):
+    # FIXME: do not set editing flag from within text box (?)
+    def focusInEvent(self, e: QFocusEvent) -> None:
+        cast(QDMContentWidget, self.parentWidget()).set_editing_flag(True)
+        return super().focusInEvent(e)
+    
+    def focusOutEvent(self, e: QFocusEvent | None) -> None:
+        cast(QDMContentWidget, self.parentWidget()).set_editing_flag(False)
+        return super().focusOutEvent(e)
