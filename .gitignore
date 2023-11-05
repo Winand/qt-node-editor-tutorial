@@ -2,3 +2,4 @@
 other_projects
 __pycache__
 .python-version
+conf/logging_config.toml

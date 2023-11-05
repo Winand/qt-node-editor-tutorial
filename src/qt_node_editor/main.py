@@ -1,4 +1,5 @@
 import argparse
+import configparser
 import logging
 import sys
 
@@ -14,6 +15,11 @@ if __name__ == '__main__':
     LOG_LEVEL = "DEBUG" if args.debug else "INFO"
     FORMAT = "[%(filename)s:%(lineno)s %(funcName)s] %(message)s"
     logging.basicConfig(format=FORMAT, level=LOG_LEVEL)
+
+    config = configparser.ConfigParser()
+    if config.read('conf/logging_config.toml'):
+        for logger_name, level in config["levels"].items():
+            logging.getLogger(logger_name).setLevel(level.upper())
 
     app = QApplication(sys.argv)
     wnd = NodeEditorWnd()

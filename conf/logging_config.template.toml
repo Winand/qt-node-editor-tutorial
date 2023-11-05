@@ -1,0 +1,4 @@
+[levels]
+# Set logging level per module
+qt_node_editor.node_node = info
+qt_node_editor.node_edge = info
