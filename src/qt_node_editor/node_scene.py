@@ -5,6 +5,8 @@ import json
 from typing import TYPE_CHECKING
 
 from qt_node_editor.node_graphics_scene import QDMGraphicsScene
+from qt_node_editor.node_edge import Edge
+from qt_node_editor.node_node import Node
 from qt_node_editor.node_serializable import Serializable
 
 if TYPE_CHECKING:
@@ -39,6 +41,11 @@ class Scene(Serializable):
     def remove_edge(self, edge: "Edge"):
         self.edges.remove(edge)
 
+    def clear(self):
+        "Clear the scene."
+        while len(self.nodes) > 0:
+            self.nodes[0].remove()
+
     def save_to_file(self, filename: str):
         "Save the scene to file."
         with open(filename, "w", encoding="utf-8") as file:
@@ -63,5 +70,13 @@ class Scene(Serializable):
         }
 
     def deserialize(self, data, hashmap: dict = {}):
-        print("desereal data", data)
-        return False
+        self.clear()
+        hashmap = {}
+
+        for node_data in data["nodes"]:
+            Node(self).deserialize(node_data, hashmap)
+
+        for edge_data in data["edges"]:
+            Edge(self).deserialize(edge_data, hashmap)
+
+        return True

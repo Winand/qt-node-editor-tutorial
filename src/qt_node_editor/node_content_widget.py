@@ -7,10 +7,10 @@ from typing import TYPE_CHECKING, cast
 from qtpy.QtGui import QFocusEvent
 from qtpy.QtWidgets import QLabel, QTextEdit, QVBoxLayout, QWidget
 
-from qt_node_editor.node_graphics_view import QDMGraphicsView
 from qt_node_editor.node_serializable import Serializable
 
 if TYPE_CHECKING:
+    from qt_node_editor.node_graphics_view import QDMGraphicsView
     from qt_node_editor.node_node import Node
 
 log = logging.getLogger(__name__)
@@ -34,7 +34,7 @@ class QDMContentWidget(QWidget, Serializable):
 
     def set_editing_flag(self, value: bool):
         # FIXME: flag is set on the 1st view
-        view = cast(QDMGraphicsView, self.node.scene.gr_scene.views()[0])
+        view = cast("QDMGraphicsView", self.node.scene.gr_scene.views()[0])
         view.editing_flag = value
     
     def serialize(self):

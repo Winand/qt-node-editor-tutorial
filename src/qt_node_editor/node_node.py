@@ -2,26 +2,30 @@
 Node
 """
 import logging
+from typing import TYPE_CHECKING
 
 from qt_node_editor.node_content_widget import QDMContentWidget
 from qt_node_editor.node_graphics_node import QDMGraphicsNode
-from qt_node_editor.node_scene import Scene
 from qt_node_editor.node_serializable import Serializable
 from qt_node_editor.node_socket import Pos, Socket
+
+if TYPE_CHECKING:
+    from qt_node_editor.node_scene import Scene
 
 log = logging.getLogger(__name__)
 
 
 class Node(Serializable):
-    def __init__(self, scene: Scene, title="Undefined Node",
+    def __init__(self, scene: "Scene", title="Undefined Node",
                  inputs: list[int] | None = None,
                  outputs: list[int] | None = None) -> None:
         super().__init__()
+        self._title = title  # FIXME: title is used from within QDMGraphicsNode constructor
         self.scene = scene
-        self.title = title
-
         self.content = QDMContentWidget(self)
         self.gr_node = QDMGraphicsNode(self)
+        self.title = title
+
         self.scene.add_node(self)
         self.scene.gr_scene.addItem(self.gr_node)
 
@@ -48,6 +52,16 @@ class Node(Serializable):
 
     def set_pos(self, x: float, y: float):
         self.gr_node.setPos(x, y)
+
+    @property
+    def title(self):
+        "Set text in node header area."
+        return self._title
+
+    @title.setter
+    def title(self, value: str):
+        self._title = value
+        self.gr_node.title = value
 
     def get_socket_position(self, index: int, position: Pos):
         "Get socket element x,y position by its index."
@@ -81,7 +95,7 @@ class Node(Serializable):
         log.debug(" - remove node from the scene")
         self.scene.remove_node(self)
         log.debug(" - everything was done.")
-    
+
     def serialize(self):
         scene_pos = self.gr_node.scenePos()
         inputs = [i.serialize() for i in self.inputs]
@@ -96,5 +110,31 @@ class Node(Serializable):
             "content": self.content.serialize()
         }
 
-    def deserialize(self, data, hashmap: dict = {}):
-        return False
+    def deserialize(self, data: dict, hashmap: dict = {}):
+        # FIXME: use some kind of a fixed structure instead of a dict?
+        self.id = data["id"]
+        hashmap[self.id] = self
+
+        self.set_pos(data["pos_x"], data["pos_y"])
+        self.title = data["title"]
+        # FIXME: is it a good solution?
+        data["inputs"].sort(key=lambda s: s["index"] + s["position"] * 10000)
+        data["outputs"].sort(key=lambda s: s["index"] + s["position"] * 10000)
+
+        self.inputs = []
+        for socket_data in data["inputs"]:
+            new_socket = Socket(node=self, index=socket_data["index"],
+                                position=socket_data["position"],
+                                socket_type=socket_data["socket_type"])
+            new_socket.deserialize(socket_data, hashmap)
+            self.inputs.append(new_socket)
+
+        self.outputs = []
+        for socket_data in data["outputs"]:
+            new_socket = Socket(node=self, index=socket_data["index"],
+                                position=socket_data["position"],
+                                socket_type=socket_data["socket_type"])
+            new_socket.deserialize(socket_data, hashmap)
+            self.outputs.append(new_socket)
+
+        return True

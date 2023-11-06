@@ -3,12 +3,15 @@ Edge between nodes
 """
 import logging
 from enum import Enum, auto
+from typing import TYPE_CHECKING
 
 from qt_node_editor.node_graphics_edge import (QDMGraphicsEdgeBezier,
                                                QDMGraphicsEdgeDirect)
-from qt_node_editor.node_scene import Scene
 from qt_node_editor.node_serializable import Serializable
 from qt_node_editor.node_socket import Socket
+
+if TYPE_CHECKING:
+    from qt_node_editor.node_scene import Scene
 
 
 class EdgeType(int, Enum):
@@ -20,25 +23,14 @@ log = logging.getLogger(__name__)
 
 
 class Edge(Serializable):
-    def __init__(self, scene: Scene, start_socket: Socket, end_socket: Socket | None,
-                 shape=EdgeType.DIRECT) -> None:
+    def __init__(self, scene: "Scene", start_socket: Socket | None=None,
+                 end_socket: Socket | None = None, shape=EdgeType.DIRECT) -> None:
         super().__init__()
         self.scene = scene
         self.start_socket = start_socket
         self.end_socket = end_socket
         self.edge_type = shape
-        self.start_socket.edge = self
-        if self.end_socket is not None:
-            self.end_socket.edge = self
 
-        if shape == EdgeType.DIRECT:
-            self.gr_edge = QDMGraphicsEdgeDirect(self)
-        elif shape == EdgeType.BEZIER:
-            self.gr_edge = QDMGraphicsEdgeBezier(self)
-        else:
-            raise ValueError(f"Unknown edge type: {shape}")
-        self.update_positions()
-        self.scene.gr_scene.addItem(self.gr_edge)
         self.scene.add_edge(self)
 
     def __str__(self):
@@ -47,13 +39,53 @@ class Edge(Serializable):
         return (f"<Edge ..{hex(id(self))[-5:]} "
                 f"(sockets {start_sock} <--> {end_sock})>")
 
+    @property
+    def start_socket(self):
+        return self._start_socket
+
+    @start_socket.setter
+    def start_socket(self, value):
+        self._start_socket = value
+        if self.start_socket is not None:
+            self.start_socket.edge = self
+
+    @property
+    def end_socket(self):
+        return self._end_socket
+
+    @end_socket.setter
+    def end_socket(self, value):
+        self._end_socket = value
+        if self.end_socket is not None:
+            self.end_socket.edge = self
+
+    @property
+    def edge_type(self) -> EdgeType:
+        return self._edge_type
+
+    @edge_type.setter
+    def edge_type(self, value: EdgeType):
+        if hasattr(self, "gr_edge") and self.gr_edge is not None:
+            self.scene.gr_scene.removeItem(self.gr_edge)
+
+        self._edge_type = value
+        if self._edge_type == EdgeType.DIRECT:
+            self.gr_edge = QDMGraphicsEdgeDirect(self)
+        elif self._edge_type == EdgeType.BEZIER:
+            self.gr_edge = QDMGraphicsEdgeBezier(self)
+        else:
+            raise ValueError(f"Unknown edge type: {value}")
+
+        self.scene.gr_scene.addItem(self.gr_edge)
+        if self.start_socket is not None:
+            self.update_positions()
+
     def update_positions(self):
         "Update start and end points of the edge on a scene"
         if not self.start_socket or not self.gr_edge:
             # @Winand
             # disconnect_from_sockets sets start_socket to None
             # remove sets gr_edge to None
-            # FIXME: raises after two clicks on the same socket
             raise ValueError(f"{self.start_socket=} {self.gr_edge=}")
         source_pos = self.start_socket.get_socket_position()
         source_pos[0] += self.start_socket.node.gr_node.pos().x()
@@ -89,7 +121,7 @@ class Edge(Serializable):
         except ValueError:
             pass  # FIXME: eliminate exception handling here
         log.debug(" - everything is done.")
-    
+
     def serialize(self):
         return {
             "id": self.id,
@@ -99,4 +131,8 @@ class Edge(Serializable):
         }
 
     def deserialize(self, data, hashmap: dict = {}):
-        return False
+        self.id = data["id"]
+        self.start_socket = hashmap[data["start"]]
+        self.end_socket = hashmap[data["end"]]
+        self.edge_type = data["edge_type"]
+        return True
