@@ -5,22 +5,25 @@ from enum import Enum, auto
 from typing import TYPE_CHECKING
 
 from qt_node_editor.node_graphics_socket import QDMGraphicsSocket
+from qt_node_editor.node_serializable import Serializable
 
 if TYPE_CHECKING:
     from qt_node_editor.node_edge import Edge
     from qt_node_editor.node_node import Node
 
 
-class Pos(Enum):
+# int required for serialization https://stackoverflow.com/q/24481852
+class Pos(int, Enum):
     LEFT_TOP = auto()
     LEFT_BOTTOM = auto()
     RIGHT_TOP = auto()
     RIGHT_BOTTOM = auto()
 
 
-class Socket():
+class Socket(Serializable):
     def __init__(self, node: "Node", index = 0, position=Pos.LEFT_TOP,
                  socket_type=1) -> None:
+        super().__init__()
         self.node = node
         self.index = index
         self.position = position
@@ -43,3 +46,14 @@ class Socket():
     def has_edge(self):
         "Check if an edge is connected to the socket."
         return self.edge is not None
+    
+    def serialize(self):
+        return {
+            "id": self.id,
+            "index": self.index,
+            "position": self.position,
+            "socket_type": self.socket_type
+        }
+
+    def deserialize(self, data, hashmap: dict = {}):
+        return False

@@ -6,15 +6,17 @@ import logging
 from qt_node_editor.node_content_widget import QDMContentWidget
 from qt_node_editor.node_graphics_node import QDMGraphicsNode
 from qt_node_editor.node_scene import Scene
+from qt_node_editor.node_serializable import Serializable
 from qt_node_editor.node_socket import Pos, Socket
 
 log = logging.getLogger(__name__)
 
 
-class Node():
+class Node(Serializable):
     def __init__(self, scene: Scene, title="Undefined Node",
                  inputs: list[int] | None = None,
                  outputs: list[int] | None = None) -> None:
+        super().__init__()
         self.scene = scene
         self.title = title
 
@@ -79,3 +81,20 @@ class Node():
         log.debug(" - remove node from the scene")
         self.scene.remove_node(self)
         log.debug(" - everything was done.")
+    
+    def serialize(self):
+        scene_pos = self.gr_node.scenePos()
+        inputs = [i.serialize() for i in self.inputs]
+        outputs = [o.serialize() for o in self.outputs]
+        return {
+            "id": self.id,
+            "title": self.title,
+            "pos_x":  scene_pos.x(),
+            "pos_y":  scene_pos.y(),
+            "inputs": inputs,
+            "outputs": outputs,
+            "content": self.content.serialize()
+        }
+
+    def deserialize(self, data, hashmap: dict = {}):
+        return False

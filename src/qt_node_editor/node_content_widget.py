@@ -8,6 +8,7 @@ from qtpy.QtGui import QFocusEvent
 from qtpy.QtWidgets import QLabel, QTextEdit, QVBoxLayout, QWidget
 
 from qt_node_editor.node_graphics_view import QDMGraphicsView
+from qt_node_editor.node_serializable import Serializable
 
 if TYPE_CHECKING:
     from qt_node_editor.node_node import Node
@@ -15,7 +16,7 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
-class QDMContentWidget(QWidget):
+class QDMContentWidget(QWidget, Serializable):
     def __init__(self, node: "Node", parent: QWidget | None = None):
         self.node = node
         super().__init__(parent)
@@ -35,6 +36,14 @@ class QDMContentWidget(QWidget):
         # FIXME: flag is set on the 1st view
         view = cast(QDMGraphicsView, self.node.scene.gr_scene.views()[0])
         view.editing_flag = value
+    
+    def serialize(self):
+        return {
+
+        }
+
+    def deserialize(self, data, hashmap: dict = {}):
+        return False
 
 
 class QDMTextEdit(QTextEdit):

@@ -7,10 +7,11 @@ from enum import Enum, auto
 from qt_node_editor.node_graphics_edge import (QDMGraphicsEdgeBezier,
                                                QDMGraphicsEdgeDirect)
 from qt_node_editor.node_scene import Scene
+from qt_node_editor.node_serializable import Serializable
 from qt_node_editor.node_socket import Socket
 
 
-class EdgeType(Enum):
+class EdgeType(int, Enum):
     "Edge visual appearance"
     DIRECT = auto()
     BEZIER = auto()
@@ -18,12 +19,14 @@ class EdgeType(Enum):
 log = logging.getLogger(__name__)
 
 
-class Edge:
+class Edge(Serializable):
     def __init__(self, scene: Scene, start_socket: Socket, end_socket: Socket | None,
                  shape=EdgeType.DIRECT) -> None:
+        super().__init__()
         self.scene = scene
         self.start_socket = start_socket
         self.end_socket = end_socket
+        self.edge_type = shape
         self.start_socket.edge = self
         if self.end_socket is not None:
             self.end_socket.edge = self
@@ -86,3 +89,14 @@ class Edge:
         except ValueError:
             pass  # FIXME: eliminate exception handling here
         log.debug(" - everything is done.")
+    
+    def serialize(self):
+        return {
+            "id": self.id,
+            "edge_type": self.edge_type,
+            "start": self.start_socket.id,
+            "end": self.end_socket.id
+        }
+
+    def deserialize(self, data, hashmap: dict = {}):
+        return False
