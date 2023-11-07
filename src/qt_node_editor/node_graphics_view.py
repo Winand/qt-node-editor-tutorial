@@ -214,6 +214,8 @@ class QDMGraphicsView(QGraphicsView):
         elif event.key() == Qt.Key.Key_L and \
                 event.modifiers() & Qt.KeyboardModifier.ControlModifier:
             self._scene.load_from_file("graph.json")
+        elif event.key() == Qt.Key.Key_1:
+            self._scene.history.store_history()
         else:
             super().keyPressEvent(event)
     

@@ -8,6 +8,7 @@ from qt_node_editor.node_graphics_scene import QDMGraphicsScene
 from qt_node_editor.node_edge import Edge
 from qt_node_editor.node_node import Node
 from qt_node_editor.node_serializable import Serializable
+from qt_node_editor.node_scene_history import SceneHistory
 
 if TYPE_CHECKING:
     from qt_node_editor.node_edge import Edge
@@ -24,6 +25,7 @@ class Scene(Serializable):
         self.scene_height = 64000
 
         self.init_ui()
+        self.history = SceneHistory(self)
 
     def init_ui(self):
         self.gr_scene = QDMGraphicsScene(self)
