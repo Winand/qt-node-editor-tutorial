@@ -215,7 +215,19 @@ class QDMGraphicsView(QGraphicsView):
                 event.modifiers() & Qt.KeyboardModifier.ControlModifier:
             self._scene.load_from_file("graph.json")
         elif event.key() == Qt.Key.Key_1:
-            self._scene.history.store_history()
+            self._scene.history.store_history("Item A")
+        elif event.key() == Qt.Key.Key_2:
+            self._scene.history.store_history("Item B")
+        elif event.key() == Qt.Key.Key_3:
+            self._scene.history.store_history("Item C")
+        elif event.key() == Qt.Key.Key_4:
+            self._scene.history.undo()
+        elif event.key() == Qt.Key.Key_5:
+            self._scene.history.redo()
+        elif event.key() == Qt.Key.Key_H:
+            print(f"HISTORY len({len(self._scene.history.history_stack)})"
+                  f" -- current_step {self._scene.history.history_current_step}")
+            print(self._scene.history.history_stack)
         else:
             super().keyPressEvent(event)
     

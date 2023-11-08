@@ -1,12 +1,14 @@
 import logging
+from typing import TYPE_CHECKING
 
-from qt_node_editor.node_graphics_scene import Scene
+if TYPE_CHECKING:
+    from qt_node_editor.node_scene import Scene
 
 log = logging.getLogger(__name__)
 
 
 class SceneHistory:
-    def __init__(self, scene: Scene) -> None:
+    def __init__(self, scene: "Scene") -> None:
         self.scene = scene
         self.history_stack = []
         self.history_current_step = -1
@@ -24,9 +26,10 @@ class SceneHistory:
         self.restory_history_stamp(self.history_stack[self.history_current_step])
 
     def store_history(self, desc):
-        log.debug("Storing history .... current_step @%d (%d)",
-                  self.history_current_step, len(self.history_stack))
+        log.debug('Storing history "%s" .... current_step @%d (%d)',
+                  desc, self.history_current_step, len(self.history_stack))
         hs = self.create_history_stamp(desc)
+        self.history_stack.append(hs)
 
     def create_history_stamp(self, desc):
         return desc
