@@ -114,7 +114,7 @@ class QDMGraphicsView(QGraphicsView):
     def left_mouse_button_press(self, event: QMouseEvent):
         item = self.get_item_at_click(event)
         self.last_lmb_click_scene_pos = self.mapToScene(event.pos())
-        log.debug("LMB Click on %s %s", item, self.debug_modifiers(event))
+        # log.debug("LMB Click on %s %s", item, self.debug_modifiers(event))
 
         if event.modifiers() & Qt.KeyboardModifier.ShiftModifier:
             # Use Shift to select graphics items along with Ctrl
