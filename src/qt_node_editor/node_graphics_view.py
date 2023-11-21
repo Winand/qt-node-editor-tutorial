@@ -114,12 +114,13 @@ class QDMGraphicsView(QGraphicsView):
     def left_mouse_button_press(self, event: QMouseEvent):
         item = self.get_item_at_click(event)
         self.last_lmb_click_scene_pos = self.mapToScene(event.pos())
-        log.debug("LMB Click on %s %s", item, self.debug_modifiers(event))
+        # log.debug("LMB Click on %s %s", item, self.debug_modifiers(event))
 
         if event.modifiers() & Qt.KeyboardModifier.ShiftModifier:
             # Use Shift to select graphics items along with Ctrl
-            self.modify_mouse_event(event, Qt.KeyboardModifier.ControlModifier)
-            return
+            event = self.modify_mouse_event(event,
+                                        Qt.KeyboardModifier.ControlModifier,
+                                        Qt.KeyboardModifier.ShiftModifier)
 
         if isinstance(item, QDMGraphicsSocket):
             if self.mode == Mode.NO_OP:
@@ -149,15 +150,16 @@ class QDMGraphicsView(QGraphicsView):
     def left_mouse_button_release(self, event: QMouseEvent):
         if event.modifiers() & Qt.KeyboardModifier.ShiftModifier:
             # Use Shift to select graphics items along with Ctrl
-            self.modify_mouse_event(event, Qt.KeyboardModifier.ControlModifier)
-            return
+            event = self.modify_mouse_event(event,
+                                        Qt.KeyboardModifier.ControlModifier,
+                                        Qt.KeyboardModifier.ShiftModifier)
 
         item = self.get_item_at_click(event)
         if self.mode == Mode.EDGE_DRAG:
             if self.distance_between_click_and_release_is_off(event):
                 if self.edge_drag_end(item):
                     return
-        
+
         if self.mode == Mode.EDGE_CUT:
             self.cut_intersecting_edges()
             self.cutline.line_points = []
@@ -167,6 +169,9 @@ class QDMGraphicsView(QGraphicsView):
             return
 
         super().mouseReleaseEvent(event)
+
+        if self.dragMode() == QGraphicsView.DragMode.RubberBandDrag:
+            self._scene.history.store_history("Selection changed")
 
     def middle_mouse_button_press(self, event: QMouseEvent):
         super().mousePressEvent(event)
@@ -198,7 +203,7 @@ class QDMGraphicsView(QGraphicsView):
                 raise ValueError
             self.drag_edge.gr_edge.set_destination(pos.x(), pos.y())
             self.drag_edge.gr_edge.update()
-        
+
         if self.mode == Mode.EDGE_CUT:
             pos = self.mapToScene(event.pos())
             self.cutline.line_points.append(pos)
@@ -214,6 +219,17 @@ class QDMGraphicsView(QGraphicsView):
         elif event.key() == Qt.Key.Key_L and \
                 event.modifiers() & Qt.KeyboardModifier.ControlModifier:
             self._scene.load_from_file("graph.json")
+        elif event.key() == Qt.Key.Key_Z and \
+                event.modifiers() & Qt.KeyboardModifier.ControlModifier:
+            self._scene.history.undo()
+        elif event.key() == Qt.Key.Key_Y and \
+                event.modifiers() & Qt.KeyboardModifier.ControlModifier:
+            self._scene.history.redo()
+        elif event.key() == Qt.Key.Key_H:
+            print(f"HISTORY len({len(self._scene.history.history_stack)})"
+                  f" -- current_step {self._scene.history.history_current_step}")
+            for ix, item in enumerate(self._scene.history.history_stack):
+                print(f"# {ix} -- {item['desc']}")
         else:
             super().keyPressEvent(event)
     
@@ -225,6 +241,7 @@ class QDMGraphicsView(QGraphicsView):
             for edge in self._scene.edges:
                 if edge.gr_edge.intersects_with(p1, p2):
                     edge.remove()
+        self._scene.history.store_history("Delete cut edges")
 
     def delete_selected(self):
         for item in self._scene.gr_scene.selectedItems():
@@ -232,6 +249,7 @@ class QDMGraphicsView(QGraphicsView):
                 item.edge.remove()
             elif isinstance(item, QDMGraphicsNode):
                 item.node.remove()
+        self._scene.history.store_history("Delete selected")
 
     def debug_modifiers(self, event: QMouseEvent):
         out = "MODS: "
@@ -279,6 +297,7 @@ class QDMGraphicsView(QGraphicsView):
             self.drag_edge.end_socket.set_connected_edge(self.drag_edge)
             log.debug(" reassigned start/end sockets to drag edge")
             self.drag_edge.update_positions()
+            self._scene.history.store_history("Created new edge by dragging")
             return True
 
         # Cancel:
@@ -325,18 +344,20 @@ class QDMGraphicsView(QGraphicsView):
 
     # @Winand
     def modify_mouse_event(self, event: QMouseEvent,
-                     add_modifier: Qt.KeyboardModifier):
+                     add_modifier: Qt.KeyboardModifier,
+                     rem_modifier: Qt.KeyboardModifier):
         "Add modifier key to the mouse event and call parent."
         event_type = event.type()
         event.ignore()
         new_event = QMouseEvent(
             event_type, event.position(), event.globalPosition(),
             event.button(), event.buttons() | Qt.MouseButton.LeftButton,
-            event.modifiers() | add_modifier
+            event.modifiers() | add_modifier & ~rem_modifier
         )
-        if event_type == QEvent.Type.MouseButtonPress:
-            super().mousePressEvent(new_event)
-        elif event_type == QEvent.Type.MouseButtonRelease:
-            super().mouseReleaseEvent(new_event)
-        else:
-            raise ValueError(f"Event {event_type} not supported")
+        return new_event
+        # if event_type == QEvent.Type.MouseButtonPress:
+        #     super().mousePressEvent(new_event)
+        # elif event_type == QEvent.Type.MouseButtonRelease:
+        #     super().mouseReleaseEvent(new_event)
+        # else:
+        #     raise ValueError(f"Event {event_type} not supported")

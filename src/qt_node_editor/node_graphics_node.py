@@ -43,13 +43,21 @@ class QDMGraphicsNode(QGraphicsItem):
         self.init_sockets()
         self.init_content()
         self.init_ui()
+        self.was_moved = False
 
     def mouseMoveEvent(self, event: QGraphicsSceneMouseEvent | None) -> None:
         super().mouseMoveEvent(event)
         # FIXME: optimize
-        for node in self.scene().scene.nodes:
+        for node in self.node.scene.nodes:
             if node.gr_node.isSelected():
                 node.update_connected_edges()
+        self.was_moved = True
+    
+    def mouseReleaseEvent(self, event: QGraphicsSceneMouseEvent | None) -> None:
+        super().mouseReleaseEvent(event)
+        if self.was_moved:
+            self.was_moved = False
+            self.node.scene.history.store_history("Node moved")
 
     @property
     def title(self):

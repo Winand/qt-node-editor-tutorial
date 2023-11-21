@@ -2,17 +2,18 @@
 Scene
 """
 import json
-from typing import TYPE_CHECKING
+from typing import TypedDict
 
+from qt_node_editor.node_edge import Edge, EdgeSerialize
 from qt_node_editor.node_graphics_scene import QDMGraphicsScene
-from qt_node_editor.node_edge import Edge
-from qt_node_editor.node_node import Node
+from qt_node_editor.node_node import Node, NodeSerialize
+from qt_node_editor.node_scene_history import SceneHistory
 from qt_node_editor.node_serializable import Serializable
 
-if TYPE_CHECKING:
-    from qt_node_editor.node_edge import Edge
-    from qt_node_editor.node_node import Node
-
+SceneSerialize = TypedDict('SceneSerialize', {
+    'id': int, 'width': int, 'height': int,
+    'nodes': list[NodeSerialize], 'edges': list[EdgeSerialize]
+})
 
 class Scene(Serializable):
     def __init__(self):
@@ -24,6 +25,7 @@ class Scene(Serializable):
         self.scene_height = 64000
 
         self.init_ui()
+        self.history = SceneHistory(self)
 
     def init_ui(self):
         self.gr_scene = QDMGraphicsScene(self)
@@ -58,7 +60,7 @@ class Scene(Serializable):
             data = json.load(file)
             self.deserialize(data)
 
-    def serialize(self):
+    def serialize(self) -> SceneSerialize:
         nodes = [n.serialize() for n in self.nodes]
         edges = [e.serialize() for e in self.edges]
         return {  # dicts are ordered in Python 3.7+
@@ -69,7 +71,7 @@ class Scene(Serializable):
             "edges": edges
         }
 
-    def deserialize(self, data, hashmap: dict = {}):
+    def deserialize(self, data: SceneSerialize, hashmap: dict | None = None):
         self.clear()
         hashmap = {}
 

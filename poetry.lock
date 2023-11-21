@@ -90,5 +90,5 @@ test = ["pytest (>=6,!=7.0.0,!=7.0.1)", "pytest-cov (>=3.0.0)", "pytest-qt"]
 
 [metadata]
 lock-version = "2.0"
-python-versions = "^3.10"
-content-hash = "7c101289c3942fc4279e20d385fd8b707c9c919086e93443822ebd74be85c655"
+python-versions = "^3.10, <3.13"
+content-hash = "058b2059a8b9b9cd431edd420b6f34c02f1d4ccb90ad77820eefca974124f01f"

@@ -1,9 +1,8 @@
-import typing
-from PyQt6 import QtGui
 from qtpy.QtWidgets import QGraphicsItem, QStyleOptionGraphicsItem, QWidget
 from qtpy.QtWidgets import *
 from qtpy.QtGui import *
 from qtpy.QtCore import *
+
 
 class QDMCutLine(QGraphicsItem):
     def __init__(self, parent: QGraphicsItem | None = None) -> None:
