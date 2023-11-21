@@ -2,7 +2,7 @@
 Node
 """
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypedDict
 
 from qt_node_editor.node_content_widget import QDMContentWidget
 from qt_node_editor.node_graphics_node import QDMGraphicsNode
@@ -13,6 +13,10 @@ if TYPE_CHECKING:
     from qt_node_editor.node_scene import Scene
 
 log = logging.getLogger(__name__)
+NodeSerialize = TypedDict('NodeSerialize', {
+    'id': int, 'title': str, 'pos_x': float, 'pos_y': float,
+    'inputs': list[dict], 'outputs': list[dict], 'content': dict
+})
 
 
 class Node(Serializable):
@@ -96,7 +100,7 @@ class Node(Serializable):
         self.scene.remove_node(self)
         log.debug(" - everything was done.")
 
-    def serialize(self):
+    def serialize(self) -> NodeSerialize:
         scene_pos = self.gr_node.scenePos()
         inputs = [i.serialize() for i in self.inputs]
         outputs = [o.serialize() for o in self.outputs]

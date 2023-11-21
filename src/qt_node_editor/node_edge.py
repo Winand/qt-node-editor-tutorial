@@ -3,7 +3,7 @@ Edge between nodes
 """
 import logging
 from enum import Enum, auto
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypedDict
 
 from qt_node_editor.node_graphics_edge import (QDMGraphicsEdgeBezier,
                                                QDMGraphicsEdgeDirect)
@@ -18,6 +18,10 @@ class EdgeType(int, Enum):
     "Edge visual appearance"
     DIRECT = auto()
     BEZIER = auto()
+
+EdgeSerialize = TypedDict('EdgeSerialize', {
+    'id': int, 'edge_type': EdgeType, 'start': int | None, 'end': int | None
+})
 
 log = logging.getLogger(__name__)
 
@@ -40,7 +44,7 @@ class Edge(Serializable):
                 f"(sockets {start_sock} <--> {end_sock})>")
 
     @property
-    def start_socket(self):
+    def start_socket(self) -> Socket | None:
         return self._start_socket
 
     @start_socket.setter
@@ -50,7 +54,7 @@ class Edge(Serializable):
             self.start_socket.edge = self
 
     @property
-    def end_socket(self):
+    def end_socket(self) -> Socket | None:
         return self._end_socket
 
     @end_socket.setter
@@ -122,12 +126,12 @@ class Edge(Serializable):
             pass  # FIXME: eliminate exception handling here
         log.debug(" - everything is done.")
 
-    def serialize(self):
+    def serialize(self) -> EdgeSerialize:
         return {
             "id": self.id,
             "edge_type": self.edge_type,
-            "start": self.start_socket.id,
-            "end": self.end_socket.id
+            "start": self.start_socket.id if self.start_socket else None,
+            "end": self.end_socket.id if self.end_socket else None
         }
 
     def deserialize(self, data, hashmap: dict = {}):
