@@ -18,7 +18,7 @@ GraphicsItemFlag = QGraphicsItem.GraphicsItemFlag
 log = logging.getLogger(__name__)
 
 
-class NodeEditorWnd(QWidget):
+class NodeEditorWidget(QWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.stylesheet_filename = "qss/nodestyle.qss"
@@ -26,7 +26,6 @@ class NodeEditorWnd(QWidget):
         self.init_ui()
 
     def init_ui(self):
-        self.setGeometry(200, 200, 800, 600)
         self._layout = QVBoxLayout()
         self._layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self._layout)
@@ -42,9 +41,6 @@ class NodeEditorWnd(QWidget):
         # create graphics view
         self.view = QDMGraphicsView(self.scene, self)
         self._layout.addWidget(self.view)
-
-        self.setWindowTitle("Node Editor")
-        self.show()
 
         # self.add_debug_content()
 

@@ -213,12 +213,12 @@ class QDMGraphicsView(QGraphicsView):
     def keyPressEvent(self, event: QKeyEvent) -> None:
         if event.key() == Qt.Key.Key_Delete and not self.editing_flag:
             self.delete_selected()
-        elif event.key() == Qt.Key.Key_S and \
-                event.modifiers() & Qt.KeyboardModifier.ControlModifier:
-            self._scene.save_to_file("graph.json")
-        elif event.key() == Qt.Key.Key_L and \
-                event.modifiers() & Qt.KeyboardModifier.ControlModifier:
-            self._scene.load_from_file("graph.json")
+        # elif event.key() == Qt.Key.Key_S and \
+        #         event.modifiers() & Qt.KeyboardModifier.ControlModifier:
+        #     self._scene.save_to_file("graph.json")
+        # elif event.key() == Qt.Key.Key_L and \
+        #         event.modifiers() & Qt.KeyboardModifier.ControlModifier:
+        #     self._scene.load_from_file("graph.json")
         elif event.key() == Qt.Key.Key_Z and \
                 event.modifiers() & Qt.KeyboardModifier.ControlModifier:
             self._scene.history.undo()

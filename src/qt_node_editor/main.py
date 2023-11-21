@@ -6,7 +6,7 @@ import sys
 
 from qtpy.QtWidgets import QApplication
 
-from qt_node_editor.node_editor_wnd import NodeEditorWnd
+from qt_node_editor.node_editor_window import NodeEditorWindow
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -26,5 +26,5 @@ if __name__ == '__main__':
             logging.getLogger(logger_name).setLevel(level.upper())
 
     app = QApplication(sys.argv)
-    wnd = NodeEditorWnd()
+    wnd = NodeEditorWindow()
     sys.exit(app.exec())
