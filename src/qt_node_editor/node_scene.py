@@ -7,7 +7,7 @@ from typing import TypedDict
 from qt_node_editor.node_edge import Edge, EdgeSerialize
 from qt_node_editor.node_graphics_scene import QDMGraphicsScene
 from qt_node_editor.node_node import Node, NodeSerialize
-from qt_node_editor.node_scene_history import SceneHistory, HistoryStamp
+from qt_node_editor.node_scene_history import SceneHistory
 from qt_node_editor.node_serializable import Serializable
 
 SceneSerialize = TypedDict('SceneSerialize', {

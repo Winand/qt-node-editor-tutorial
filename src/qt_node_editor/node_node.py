@@ -114,7 +114,7 @@ class Node(Serializable):
             "content": self.content.serialize()
         }
 
-    def deserialize(self, data: dict, hashmap: dict = {}):
+    def deserialize(self, data: NodeSerialize, hashmap: dict):
         # FIXME: use some kind of a fixed structure instead of a dict?
         self.id = data["id"]
         hashmap[self.id] = self
