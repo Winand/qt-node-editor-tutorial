@@ -8,3 +8,4 @@ It uses Qt 6 and qtpy abstraction layer. Poetry is used to manage dependencies.
 ([pavel.krupala/pyqt-node-editor](https://gitlab.com/pavel.krupala/pyqt-node-editor))
 * [beyse/NodeEditor](https://github.com/beyse/NodeEditor)
 * [klauer/qtpynodeeditor](https://github.com/klauer/qtpynodeeditor) (Python implementation of [paceholder/nodeeditor](https://github.com/paceholder/nodeeditor))
+* [Nodezator](https://nodezator.com/)

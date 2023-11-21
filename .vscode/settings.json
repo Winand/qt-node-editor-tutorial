@@ -1,5 +1,5 @@
 {
     "pylint.args": [
-        "--extension-pkg-whitelist=PyQt6"
+        "--extension-pkg-whitelist=PyQt6,PySide6"
     ],
 }

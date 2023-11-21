@@ -7,7 +7,7 @@ readme = "README.md"
 packages = [{include = "qt_node_editor", from = "src"}]
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = "^3.10, <3.13"
 qtpy = "^2.4.1"
 
 
