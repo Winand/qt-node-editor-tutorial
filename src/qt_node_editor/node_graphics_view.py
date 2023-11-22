@@ -1,7 +1,7 @@
 import logging
 from enum import Enum, auto
 
-from qtpy.QtCore import QEvent, QPointF, Qt
+from qtpy.QtCore import QEvent, QPointF, Qt, Signal
 from qtpy.QtGui import QKeyEvent, QMouseEvent, QPainter, QWheelEvent
 from qtpy.QtWidgets import QGraphicsItem, QGraphicsView, QWidget, QApplication
 
@@ -24,6 +24,8 @@ EDGE_DRAG_START_THRESHOLD = 10  # px
 
 
 class QDMGraphicsView(QGraphicsView):
+    scene_pos_changed = Signal(int, int)
+
     def __init__(self, scene: Scene, parent: QWidget | None):
         super().__init__(parent)
         self._scene = scene
@@ -208,30 +210,38 @@ class QDMGraphicsView(QGraphicsView):
             pos = self.mapToScene(event.pos())
             self.cutline.line_points.append(pos)
             self.cutline.update()
+
+        self.last_scene_mouse_position = self.mapToScene(event.pos())
+
+        self.scene_pos_changed.emit(
+            int(self.last_scene_mouse_position.x()),
+            int(self.last_scene_mouse_position.y()),
+        )
+
         return super().mouseMoveEvent(event)
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
-        if event.key() == Qt.Key.Key_Delete and not self.editing_flag:
-            self.delete_selected()
+        # if event.key() == Qt.Key.Key_Delete and not self.editing_flag:
+        #     self.delete_selected()
         # elif event.key() == Qt.Key.Key_S and \
         #         event.modifiers() & Qt.KeyboardModifier.ControlModifier:
         #     self._scene.save_to_file("graph.json")
         # elif event.key() == Qt.Key.Key_L and \
         #         event.modifiers() & Qt.KeyboardModifier.ControlModifier:
         #     self._scene.load_from_file("graph.json")
-        elif event.key() == Qt.Key.Key_Z and \
-                event.modifiers() & Qt.KeyboardModifier.ControlModifier:
-            self._scene.history.undo()
-        elif event.key() == Qt.Key.Key_Y and \
-                event.modifiers() & Qt.KeyboardModifier.ControlModifier:
-            self._scene.history.redo()
-        elif event.key() == Qt.Key.Key_H:
-            print(f"HISTORY len({len(self._scene.history.history_stack)})"
-                  f" -- current_step {self._scene.history.history_current_step}")
-            for ix, item in enumerate(self._scene.history.history_stack):
-                print(f"# {ix} -- {item['desc']}")
-        else:
-            super().keyPressEvent(event)
+        # elif event.key() == Qt.Key.Key_Z and \
+        #         event.modifiers() & Qt.KeyboardModifier.ControlModifier:
+        #     self._scene.history.undo()
+        # elif event.key() == Qt.Key.Key_Y and \
+        #         event.modifiers() & Qt.KeyboardModifier.ControlModifier:
+        #     self._scene.history.redo()
+        # elif event.key() == Qt.Key.Key_H:
+        #     print(f"HISTORY len({len(self._scene.history.history_stack)})"
+        #           f" -- current_step {self._scene.history.history_current_step}")
+        #     for ix, item in enumerate(self._scene.history.history_stack):
+        #         print(f"# {ix} -- {item['desc']}")
+        # else:
+        super().keyPressEvent(event)
     
     def cut_intersecting_edges(self):
         for ix in range(len(self.cutline.line_points) - 1):
