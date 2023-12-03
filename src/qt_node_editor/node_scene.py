@@ -9,6 +9,7 @@ from qt_node_editor.node_graphics_scene import QDMGraphicsScene
 from qt_node_editor.node_node import Node, NodeSerialize
 from qt_node_editor.node_scene_history import SceneHistory
 from qt_node_editor.node_serializable import Serializable
+from qt_node_editor.node_scene_clipboard import SceneClipboard
 
 SceneSerialize = TypedDict('SceneSerialize', {
     'id': int, 'width': int, 'height': int,
@@ -26,6 +27,7 @@ class Scene(Serializable):
 
         self.init_ui()
         self.history = SceneHistory(self)
+        self.clipboard = SceneClipboard(self)
 
     def init_ui(self):
         self.gr_scene = QDMGraphicsScene(self)
@@ -71,15 +73,17 @@ class Scene(Serializable):
             "edges": edges
         }
 
-    def deserialize(self, data: SceneSerialize, hashmap: dict | None = None):
+    def deserialize(self, data: SceneSerialize, hashmap: dict | None = None,
+                    restore_id=True):
         self.clear()
         hashmap = {}
-        self.id = data["id"]
+        if restore_id:  # avoid id collisions when copying items
+            self.id = data["id"]
 
         for node_data in data["nodes"]:
-            Node(self).deserialize(node_data, hashmap)
+            Node(self).deserialize(node_data, hashmap, restore_id)
 
         for edge_data in data["edges"]:
-            Edge(self).deserialize(edge_data, hashmap)
+            Edge(self).deserialize(edge_data, hashmap, restore_id)
 
         return True
