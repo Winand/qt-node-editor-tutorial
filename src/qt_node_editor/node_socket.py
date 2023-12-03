@@ -2,7 +2,7 @@
 Socket
 """
 from enum import Enum, auto
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypedDict
 
 from qt_node_editor.node_graphics_socket import QDMGraphicsSocket
 from qt_node_editor.node_serializable import Serializable
@@ -18,6 +18,12 @@ class Pos(int, Enum):
     LEFT_BOTTOM = auto()
     RIGHT_TOP = auto()
     RIGHT_BOTTOM = auto()
+
+class SocketSerialize(TypedDict):
+    id: int
+    index: int
+    position: Pos
+    socket_type: int
 
 
 class Socket(Serializable):
@@ -46,8 +52,8 @@ class Socket(Serializable):
     def has_edge(self):
         "Check if an edge is connected to the socket."
         return self.edge is not None
-    
-    def serialize(self):
+
+    def serialize(self) -> SocketSerialize:
         return {
             "id": self.id,
             "index": self.index,
@@ -55,7 +61,8 @@ class Socket(Serializable):
             "socket_type": self.socket_type
         }
 
-    def deserialize(self, data, hashmap: dict = {}, restore_id=True):
+    def deserialize(self, data: SocketSerialize, hashmap: dict = {},
+                    restore_id=True):
         if restore_id:
             self.id = data["id"]
         hashmap[self.id] = self

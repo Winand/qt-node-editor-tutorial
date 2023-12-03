@@ -4,19 +4,25 @@ Node
 import logging
 from typing import TYPE_CHECKING, TypedDict
 
-from qt_node_editor.node_content_widget import QDMContentWidget
+from qt_node_editor.node_content_widget import (ContentSerialize,
+                                                QDMContentWidget)
 from qt_node_editor.node_graphics_node import QDMGraphicsNode
 from qt_node_editor.node_serializable import Serializable
-from qt_node_editor.node_socket import Pos, Socket
+from qt_node_editor.node_socket import Pos, Socket, SocketSerialize
 
 if TYPE_CHECKING:
     from qt_node_editor.node_scene import Scene
 
 log = logging.getLogger(__name__)
-NodeSerialize = TypedDict('NodeSerialize', {
-    'id': int, 'title': str, 'pos_x': float, 'pos_y': float,
-    'inputs': list[dict], 'outputs': list[dict], 'content': dict
-})
+
+class NodeSerialize(TypedDict):
+    id: int
+    title: str
+    pos_x: float
+    pos_y: float
+    inputs: list[SocketSerialize]
+    outputs: list[SocketSerialize]
+    content: ContentSerialize
 
 
 class Node(Serializable):

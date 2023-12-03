@@ -2,7 +2,7 @@
 Content of a node (widgets)
 """
 import logging
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, TypedDict, cast
 
 from qtpy.QtGui import QFocusEvent
 from qtpy.QtWidgets import QLabel, QTextEdit, QVBoxLayout, QWidget
@@ -14,6 +14,9 @@ if TYPE_CHECKING:
     from qt_node_editor.node_node import Node
 
 log = logging.getLogger(__name__)
+
+class ContentSerialize(TypedDict):
+    pass
 
 
 class QDMContentWidget(QWidget, Serializable):
@@ -36,13 +39,13 @@ class QDMContentWidget(QWidget, Serializable):
         # FIXME: flag is set on the 1st view
         view = cast("QDMGraphicsView", self.node.scene.gr_scene.views()[0])
         view.editing_flag = value
-    
-    def serialize(self):
+
+    def serialize(self) -> ContentSerialize:
         return {
 
         }
 
-    def deserialize(self, data, hashmap: dict = {}):
+    def deserialize(self, data: ContentSerialize, hashmap: dict = {}):
         return False
 
 
@@ -51,7 +54,7 @@ class QDMTextEdit(QTextEdit):
     def focusInEvent(self, e: QFocusEvent) -> None:
         cast(QDMContentWidget, self.parentWidget()).set_editing_flag(True)
         return super().focusInEvent(e)
-    
+
     def focusOutEvent(self, e: QFocusEvent | None) -> None:
         cast(QDMContentWidget, self.parentWidget()).set_editing_flag(False)
         return super().focusOutEvent(e)

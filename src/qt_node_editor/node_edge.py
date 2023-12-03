@@ -19,9 +19,11 @@ class EdgeType(int, Enum):
     DIRECT = auto()
     BEZIER = auto()
 
-EdgeSerialize = TypedDict('EdgeSerialize', {
-    'id': int, 'edge_type': EdgeType, 'start': int | None, 'end': int | None
-})
+class EdgeSerialize(TypedDict):
+    id: int
+    edge_type: EdgeType
+    start: int | None
+    end: int | None
 
 log = logging.getLogger(__name__)
 
@@ -134,7 +136,8 @@ class Edge(Serializable):
             "end": self.end_socket.id if self.end_socket else None
         }
 
-    def deserialize(self, data, hashmap: dict = {}, restore_id=True):
+    def deserialize(self, data: EdgeSerialize, hashmap: dict = {},
+                    restore_id=True):
         if restore_id:
             self.id = data["id"]
         self.start_socket = hashmap[data["start"]]

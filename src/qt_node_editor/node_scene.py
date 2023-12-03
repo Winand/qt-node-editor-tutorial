@@ -11,10 +11,12 @@ from qt_node_editor.node_scene_history import SceneHistory
 from qt_node_editor.node_serializable import Serializable
 from qt_node_editor.node_scene_clipboard import SceneClipboard
 
-SceneSerialize = TypedDict('SceneSerialize', {
-    'id': int, 'width': int, 'height': int,
-    'nodes': list[NodeSerialize], 'edges': list[EdgeSerialize]
-})
+class SceneSerialize(TypedDict):
+    id: int
+    width: int
+    height: int
+    nodes: list[NodeSerialize]
+    edges: list[EdgeSerialize]
 
 class Scene(Serializable):
     def __init__(self):

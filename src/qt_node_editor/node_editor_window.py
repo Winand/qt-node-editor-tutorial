@@ -7,7 +7,8 @@ from qtpy.QtWidgets import QApplication, QFileDialog, QLabel, QMainWindow
 
 from qt_node_editor.node_editor_widget import NodeEditorWidget
 from qt_node_editor.node_graphics_view import QDMGraphicsView
-from qt_node_editor.utils import As, some
+from qt_node_editor.node_scene import SceneSerialize
+from qt_node_editor.utils import As, some, validate_dict
 
 log = logging.getLogger(__name__)
 
@@ -139,13 +140,14 @@ class NodeEditorWindow(QMainWindow):
         raw_data = some(self.app.clipboard()).text()
 
         try:
-            data = json.loads(raw_data)
+            json_data = json.loads(raw_data)
         except ValueError as e:
             log.error("Pasting of not valid json data! %s", e)
             return
 
-        if 'nodes' not in data:
-            log.error("JSON does not contain any nodes")
+        try:
+            data = validate_dict(json_data, SceneSerialize)
+        except (ValueError, TypeError) as e:
+            log.error("JSON is not a valid scene: %s", e)
             return
-
         self.centralWidget().scene.clipboard.deserialize_from_clipboard(data)

@@ -8,12 +8,15 @@ if TYPE_CHECKING:
     from qt_node_editor.node_scene import Scene, SceneSerialize
 
 log = logging.getLogger(__name__)
-HistorySel = TypedDict('HistorySel', {
-    'nodes': list[QDMGraphicsNode], 'edges': list[QDMGraphicsEdge]
-})
-HistoryStamp = TypedDict('HistoryStamp', {
-    'desc': str, 'snapshot': 'SceneSerialize', 'selection': HistorySel
-})
+
+class HistorySel(TypedDict):
+    nodes: list[QDMGraphicsNode]
+    edges: list[QDMGraphicsEdge]
+
+class HistoryStamp(TypedDict):
+    desc: str
+    snapshot: 'SceneSerialize'
+    selection: HistorySel
 
 
 class SceneHistory:
