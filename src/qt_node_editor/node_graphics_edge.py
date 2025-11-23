@@ -2,7 +2,7 @@ import math
 from typing import TYPE_CHECKING
 
 from qtpy.QtCore import QPointF, QRectF, Qt
-from qtpy.QtGui import QColor, QPainter, QPainterPath, QPen
+from qtpy.QtGui import QColor, QPainter, QPainterPath, QPen, QPainterPathStroker
 from qtpy.QtWidgets import (QGraphicsItem, QGraphicsPathItem,
                             QStyleOptionGraphicsItem, QWidget)
 
@@ -59,26 +59,33 @@ class QDMGraphicsEdge(QGraphicsPathItem):
         path = self.calc_path()
         return cutpath.intersects(path)
 
-    def calc_path(self):
+    def calc_path(self) -> QPainterPath:
         "Handles drawing QPainterPath from point A to B"
         raise NotImplementedError("This method has to be overridden in a child class")
 
-    def boundingRect(self):
-        "Returns item area (required for correct updates)"
-        return QRectF(
-            QPointF(*self.pos_source), QPointF(*self.pos_destination)
-        ).normalized()
+    # boundingRect() is calculated from shape() if it is implemented correctly.
+    # If it is required to paint() something outside of the shape() this rect
+    # needs to be adjusted. | https://youtu.be/FPP4RcGeQpU?t=33
+
+    def shape(self) -> QPainterPath:
+        "Shape is a clickable area of the Item."
+        # By default shape() is a closed path(), see example image in docs
+        # https://doc.qt.io/qt-6/qgraphicspathitem.html#details.
+        stroker = QPainterPathStroker()  # creates a fillable shape from path
+        stroker.setWidth(8)  # wider path is easier to click
+        stroker.setCapStyle(Qt.PenCapStyle.FlatCap)  # do not add width/2 margin to ends
+        return stroker.createStroke(self.path())
 
 
 class QDMGraphicsEdgeDirect(QDMGraphicsEdge):
-    def calc_path(self):
+    def calc_path(self) -> QPainterPath:
         path = QPainterPath(QPointF(self.pos_source[0], self.pos_source[1]))
         path.lineTo(self.pos_destination[0], self.pos_destination[1])
         return path
 
 
 class QDMGraphicsEdgeBezier(QDMGraphicsEdge):
-    def calc_path(self):
+    def calc_path(self) -> QPainterPath:
         s = self.pos_source
         d = self.pos_destination
         dist = (d[0] - s[0]) * 0.5
