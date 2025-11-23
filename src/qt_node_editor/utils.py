@@ -1,7 +1,4 @@
-from enum import Enum
-from types import UnionType
-from typing import (Any, Generic, Type, TypedDict, TypeVar, cast, get_args,
-                    get_origin, is_typeddict)
+from typing import (Any, Generic, Type, TypeVar, cast)
 
 T = TypeVar("T")
 V = TypeVar("V")
@@ -32,42 +29,3 @@ class _Some():
         return cast(T, other)
 
 Some = _Some()
-
-
-TD = TypeVar("TD", bound=TypedDict)
-
-def _check_value(value, value_type):
-    if isinstance(value_type, UnionType):
-        for it in get_args(value_type):
-            try:
-                _check_value(value, it)
-                break
-            except TypeError:
-                pass
-        else:
-            raise TypeError(f"{repr(value)} is not one of {value_type}")
-    elif is_typeddict(value_type):
-        validate_dict(value, value_type)
-    elif issubclass(value_type, Enum):
-        if value not in set(value_type):
-            raise TypeError(f"{repr(value)} is not in {value_type} enum")
-    elif not isinstance(value, value_type):
-        raise TypeError(f"{repr(value)} is not {value_type}")
-
-def validate_dict(data: dict, struct_type: type[TD]) -> TD:
-    "Validate a dictionary."
-    if not isinstance(data, dict):
-        raise TypeError(f"{repr(data)} is not a {struct_type}")
-    for key, value_type in struct_type.__annotations__.items():
-        if key not in data:
-            raise ValueError(f"Key '{key}' is missing")
-        container_type = get_origin(value_type)
-        if container_type == list:
-            if not isinstance(data[key], container_type):
-                raise TypeError(f"Key '{key}' is not a {container_type} container")
-            for item in data[key]:
-                sub_value_type = get_args(value_type)[0]
-                _check_value(item, sub_value_type)
-        else:
-            _check_value(data[key], value_type)
-    return cast(TD, data)

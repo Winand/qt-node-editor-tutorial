@@ -2,13 +2,14 @@ import json
 import logging
 from pathlib import Path
 
+import typedload
 from qtpy.QtGui import QAction, QGuiApplication
 from qtpy.QtWidgets import QApplication, QFileDialog, QLabel, QMainWindow
 
 from qt_node_editor.node_editor_widget import NodeEditorWidget
 from qt_node_editor.node_graphics_view import QDMGraphicsView
 from qt_node_editor.node_scene import SceneSerialize
-from qt_node_editor.utils import As, some, validate_dict
+from qt_node_editor.utils import As, some
 
 log = logging.getLogger(__name__)
 
@@ -146,7 +147,7 @@ class NodeEditorWindow(QMainWindow):
             return
 
         try:
-            data = validate_dict(json_data, SceneSerialize)
+            data = typedload.load(json_data, SceneSerialize)
         except (ValueError, TypeError) as e:
             log.error("JSON is not a valid scene: %s", e)
             return
