@@ -2,7 +2,7 @@
 Scene
 """
 import json
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 from qt_node_editor.node_edge import Edge, EdgeSerialize
 from qt_node_editor.node_graphics_scene import QDMGraphicsScene
@@ -12,9 +12,9 @@ from qt_node_editor.node_serializable import Serializable
 from qt_node_editor.node_scene_clipboard import SceneClipboard
 
 class SceneSerialize(TypedDict):
-    id: int
-    width: int
-    height: int
+    id: NotRequired[int]  # TODO: required
+    width: NotRequired[int]  # TODO: required
+    height: NotRequired[int]  # TODO: required
     nodes: list[NodeSerialize]
     edges: list[EdgeSerialize]
 

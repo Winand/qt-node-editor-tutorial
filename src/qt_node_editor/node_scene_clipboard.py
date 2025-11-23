@@ -1,14 +1,17 @@
+# TODO: use DI or Protocol? https://gemini.google.com/app/d3cef879926b87b8
 import logging
 from typing import TYPE_CHECKING, cast
 
+from qt_node_editor.node_edge import Edge
 from qt_node_editor.node_graphics_edge import QDMGraphicsEdge
 from qt_node_editor.node_graphics_node import QDMGraphicsNode
+from qt_node_editor.node_node import Node
 
 if TYPE_CHECKING:
-    from qt_node_editor.node_edge import Edge, EdgeSerialize
+    from qt_node_editor.node_edge import EdgeSerialize
     from qt_node_editor.node_graphics_view import QDMGraphicsView
     from qt_node_editor.node_node import NodeSerialize
-    from qt_node_editor.node_scene import Scene
+    from qt_node_editor.node_scene import Scene, SceneSerialize
     from qt_node_editor.node_socket import Socket
 
 log = logging.getLogger(__name__)
@@ -52,10 +55,46 @@ class SceneClipboard:
             'nodes': sel_nodes,
             'edges': edges_final
         }
-        if delete:
+        if delete:  # delete on cut action
             view = cast('QDMGraphicsView', self.scene.gr_scene.views()[0])
             view.delete_selected()
+            self.scene.history.store_history("Cut out elements from scene")
         return data
-    
-    def deserialize_from_clipboard(self, data):
-        print(f"deseralizing from clipboard, {data=}")
+
+    def deserialize_from_clipboard(self, data: "SceneSerialize"):
+        hashmap = {}
+        view = cast('QDMGraphicsView', self.scene.gr_scene.views()[0])
+        mouse_scene_pos = view.last_scene_mouse_position
+        # TODO: rework bounding box calculation
+        # see comment https://www.youtube.com/watch?v=PdqCogmBeXI&lc=UgwvzoSf2dfez6JDf4R4AaABAg
+        # graphical node width should be taken into account too
+        minx, maxx, miny, maxy = 0., 0., 0., 0.
+        for node_data in data["nodes"]:
+            x, y = node_data["pos_x"], node_data["pos_y"]
+            minx = min(minx, x)
+            maxx = max(maxx, x)
+            miny = min(miny, y)
+            maxy = max(maxy, y)
+        bbox_center_x = (minx + maxx) / 2
+        bbox_center_y = (miny + maxy) / 2
+
+        # center = view.mapToScene(view.rect().center())
+
+        # calculate the offset of the newly created nodes
+        offset_x = mouse_scene_pos.x() - bbox_center_x
+        offset_y = mouse_scene_pos.y() - bbox_center_y
+
+        for node_data in data["nodes"]:
+            new_node = Node(self.scene)
+            new_node.deserialize(node_data, hashmap, restore_id=False)
+            # new_node.gr_node.setSelected(True)  # @Winand: deselect prev. sel. first
+
+            # readjust the new node's position
+            pos = new_node.pos
+            new_node.set_pos(pos.x() + offset_x, pos.y() + offset_y)
+
+        for edge_data in data["edges"]:
+            new_edge = Edge(self.scene)
+            new_edge.deserialize(edge_data, hashmap, restore_id=False)
+
+        self.scene.history.store_history("Pasted elements into the scene")

@@ -65,5 +65,7 @@ class Socket(Serializable):
                     restore_id=True):
         if restore_id:
             self.id = data["id"]
-        hashmap[self.id] = self
+        # NOTE: data["id"] is used even w/ restore_id=False
+        # so edges can find the right sockets on copy
+        hashmap[data["id"]] = self
         return True
