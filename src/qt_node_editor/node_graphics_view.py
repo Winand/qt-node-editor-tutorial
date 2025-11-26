@@ -35,6 +35,7 @@ class QDMGraphicsView(QGraphicsView):
 
         self.mode = Mode.NO_OP
         self.editing_flag = False
+        self.rubber_band_dragging_rectangle = False
         self.last_lmb_click_scene_pos = QPointF()
 
         self.zoom_in_factor = 1.25
@@ -131,23 +132,27 @@ class QDMGraphicsView(QGraphicsView):
                 return
 
         if self.mode == Mode.EDGE_DRAG:
+            # TODO: if you click on the same pin you started to drag it doesn't
+            # return and selects underlying edge or node. Return in both cases?
             if self.edge_drag_end(item):
                 return
 
-        if item is None and event.modifiers() & Qt.KeyboardModifier.ControlModifier:
-            # Ctrl + background click
-            self.mode  = Mode.EDGE_CUT
-            fake_event = QMouseEvent(
-                QEvent.Type.MouseButtonRelease,
-                event.position(), event.globalPosition(),
-                Qt.MouseButton.LeftButton, Qt.MouseButton.NoButton,
-                event.modifiers()
-            )
-            super().mouseReleaseEvent(fake_event)
-            QApplication.setOverrideCursor(Qt.CursorShape.CrossCursor)
-            self.cutline.line_points = []  # reset old line_points
-            self.cutline.show()
-            return
+        if item is None:
+            if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
+                # Ctrl + background click
+                self.mode  = Mode.EDGE_CUT
+                fake_event = QMouseEvent(
+                    QEvent.Type.MouseButtonRelease,
+                    event.position(), event.globalPosition(),
+                    Qt.MouseButton.LeftButton, Qt.MouseButton.NoButton,
+                    event.modifiers()
+                )
+                super().mouseReleaseEvent(fake_event)
+                QApplication.setOverrideCursor(Qt.CursorShape.CrossCursor)
+                self.cutline.line_points = []  # reset old line_points
+                self.cutline.show()
+                return
+            self.rubber_band_dragging_rectangle = True
 
         super().mousePressEvent(event)  # pass to upper level
 
@@ -174,8 +179,11 @@ class QDMGraphicsView(QGraphicsView):
 
         super().mouseReleaseEvent(event)
 
-        if self.dragMode() == QGraphicsView.DragMode.RubberBandDrag:
+        # see also 24: https://youtu.be/FPP4RcGeQpU?t=1011
+        # if self.mode != Mode.EDGE_DRAG:  # clicked on a pin to start edge dragging
+        if self.rubber_band_dragging_rectangle:
             self._scene.history.store_history("Selection changed")
+            self.rubber_band_dragging_rectangle = False
 
     def middle_mouse_button_press(self, event: QMouseEvent):
         super().mousePressEvent(event)
