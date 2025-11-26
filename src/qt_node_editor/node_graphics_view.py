@@ -145,6 +145,8 @@ class QDMGraphicsView(QGraphicsView):
             )
             super().mouseReleaseEvent(fake_event)
             QApplication.setOverrideCursor(Qt.CursorShape.CrossCursor)
+            self.cutline.line_points = []  # reset old line_points
+            self.cutline.show()
             return
 
         super().mousePressEvent(event)  # pass to upper level
@@ -164,8 +166,8 @@ class QDMGraphicsView(QGraphicsView):
 
         if self.mode == Mode.EDGE_CUT:
             self.cut_intersecting_edges()
-            self.cutline.line_points = []
-            self.cutline.update()
+            # keep `line_points` so boundingRect is on screen and cutline is hidden
+            self.cutline.hide()
             QApplication.setOverrideCursor(Qt.CursorShape.ArrowCursor)
             self.mode = Mode.NO_OP
             return
@@ -243,7 +245,7 @@ class QDMGraphicsView(QGraphicsView):
         # else:
         super().keyPressEvent(event)
     
-    def cut_intersecting_edges(self):
+    def cut_intersecting_edges(self):  # TODO: item.collidesWith? then shape is required
         for ix in range(len(self.cutline.line_points) - 1):
             p1 = self.cutline.line_points[ix]
             p2 = self.cutline.line_points[ix + 1]

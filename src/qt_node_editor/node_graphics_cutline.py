@@ -4,11 +4,11 @@ from qtpy.QtGui import *
 from qtpy.QtCore import *
 
 
-class QDMCutLine(QGraphicsItem):
+class QDMCutLine(QGraphicsItem):  # TODO: QGraphicsPathItem like Edge?
     def __init__(self, parent: QGraphicsItem | None = None) -> None:
         super().__init__(parent)
 
-        self.line_points = []
+        self.line_points: list[QPointF] = []
 
         self._pen = QPen(Qt.GlobalColor.white)
         self._pen.setWidthF(2.0)
@@ -16,14 +16,23 @@ class QDMCutLine(QGraphicsItem):
 
         self.setZValue(2)
 
+    @property
+    def polygon(self) -> QPolygonF:
+        return QPolygonF(self.line_points)
+
     def boundingRect(self) -> QRectF:
-        return QRectF(0, 0, 1, 1)
-    
+        return self.polygon.boundingRect()
+
+    # TODO: May be required for collision detection with edges
+    # def shape(self) -> QPainterPath:
+    #     p = QPainterPath()
+    #     p.addPolygon(self.polygon)
+    #     return p
+
     def paint(self, painter: QPainter, option: QStyleOptionGraphicsItem | None, widget: QWidget | None = None) -> None:
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.setBrush(Qt.BrushStyle.NoBrush)
         painter.setPen(self._pen)
 
-        poly = QPolygonF(self.line_points)
-        painter.drawPolyline(poly)
+        painter.drawPolyline(self.polygon)
         # return super().paint(painter, option, widget)

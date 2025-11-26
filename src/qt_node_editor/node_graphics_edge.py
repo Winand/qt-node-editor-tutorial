@@ -96,7 +96,7 @@ class QDMGraphicsEdgeBezier(QDMGraphicsEdge):
         cpy_d = 0
 
         if not self.edge.start_socket:
-            raise ValueError
+            raise ValueError  # see also https://gitlab.com/pavel.krupala/pyqt-node-editor/-/blob/master/nodeeditor/node_graphics_edge_path.py#L60
         sspos = self.edge.start_socket.position
 
         if (s[0] > d[0] and sspos in (Pos.RIGHT_TOP, Pos.RIGHT_BOTTOM)) or \
