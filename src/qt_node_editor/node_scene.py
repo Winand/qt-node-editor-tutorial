@@ -4,6 +4,8 @@ Scene
 import json
 from typing import NotRequired, TypedDict
 
+import typedload
+
 from qt_node_editor.node_edge import Edge, EdgeSerialize
 from qt_node_editor.node_graphics_scene import QDMGraphicsScene
 from qt_node_editor.node_node import Node, NodeSerialize
@@ -61,7 +63,7 @@ class Scene(Serializable):
     def load_from_file(self, filename: str):
         "Load scene from file."
         with open(filename, "r", encoding="utf-8") as file:
-            data = json.load(file)
+            data = typedload.load(json.load(file), SceneSerialize)
             self.deserialize(data)
 
     def serialize(self) -> SceneSerialize:
