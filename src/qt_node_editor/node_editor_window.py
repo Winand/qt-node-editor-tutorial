@@ -1,5 +1,6 @@
 import json
 import logging
+from collections.abc import Callable
 from pathlib import Path
 
 import typedload
@@ -15,6 +16,8 @@ log = logging.getLogger(__name__)
 
 
 class NodeEditorWindow(QMainWindow):
+    centralWidget: Callable[[], NodeEditorWidget]  # noqa: N815
+
     def __init__(self):
         super().__init__()
         self.app = QApplication.instance() @As(QGuiApplication)
@@ -84,10 +87,6 @@ class NodeEditorWindow(QMainWindow):
         self.setWindowTitle("Node Editor")
         self.show()
 
-    # @Override
-    def centralWidget(self) -> NodeEditorWidget:
-        "Central widget is NodeEditorWidget"
-        return super().centralWidget() @As(NodeEditorWidget)
 
     def on_scene_pos_changed(self, x: int, y: int):
         self.status_mouse_pos.setText(f"Scene Pos: {x}, {y}")
