@@ -36,7 +36,7 @@ class NodeEditorWidget(QWidget):
 
         self.add_nodes()
 
-        self.scene.history.store_history("Initial")  # FIXME: @Winand
+        self.scene.history.store_history("Initial", modified=True)  # FIXME: @Winand
 
         # create graphics view
         self.view = QDMGraphicsView(self.scene, self)

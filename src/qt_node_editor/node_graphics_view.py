@@ -261,7 +261,7 @@ class QDMGraphicsView(QGraphicsView):
             for edge in self._scene.edges:
                 if edge.gr_edge.intersects_with(p1, p2):
                     edge.remove()
-        self._scene.history.store_history("Delete cut edges")
+        self._scene.history.store_history("Delete cut edges", modified=True)
 
     def delete_selected(self):
         for item in self._scene.gr_scene.selectedItems():
@@ -269,7 +269,7 @@ class QDMGraphicsView(QGraphicsView):
                 item.edge.remove()
             elif isinstance(item, QDMGraphicsNode):
                 item.node.remove()
-        self._scene.history.store_history("Delete selected")
+        self._scene.history.store_history("Delete selected", modified=True)
 
     def debug_modifiers(self, event: QMouseEvent):
         out = "MODS: "
@@ -317,7 +317,8 @@ class QDMGraphicsView(QGraphicsView):
             self.drag_edge.end_socket.set_connected_edge(self.drag_edge)
             log.debug(" reassigned start/end sockets to drag edge")
             self.drag_edge.update_positions()
-            self._scene.history.store_history("Created new edge by dragging")
+            self._scene.history.store_history("Created new edge by dragging",
+                                              modified=True)
             return True
 
         # Cancel:

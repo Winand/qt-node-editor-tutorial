@@ -2,10 +2,12 @@ import json
 import logging
 from collections.abc import Callable
 from pathlib import Path
+from typing import override
 
 import typedload
-from qtpy.QtGui import QAction, QGuiApplication
-from qtpy.QtWidgets import QApplication, QFileDialog, QLabel, QMainWindow
+from typedload.exceptions import TypedloadValueError
+from qtpy.QtGui import QAction, QCloseEvent, QGuiApplication
+from qtpy.QtWidgets import QApplication, QFileDialog, QLabel, QMainWindow, QMessageBox
 
 from qt_node_editor.node_editor_widget import NodeEditorWidget
 from qt_node_editor.node_graphics_view import QDMGraphicsView
@@ -21,8 +23,8 @@ class NodeEditorWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.app = QApplication.instance() @As(QGuiApplication)
+        self.filename: str | None = None
         self.init_ui()
-        self.filename = None
 
     def create_act(self, name: str, shortcut: str, tooltip: str, callback):
         act = QAction(name, self)
@@ -76,6 +78,7 @@ class NodeEditorWindow(QMainWindow):
         ))
 
         nodeeditor = NodeEditorWidget(self)
+        nodeeditor.scene.add_has_been_modified_listener(self.change_title)
         self.setCentralWidget(nodeeditor)
 
         self.status_mouse_pos = QLabel("")
@@ -84,37 +87,86 @@ class NodeEditorWindow(QMainWindow):
 
         # Set window properties
         self.setGeometry(200, 200, 800, 600)
-        self.setWindowTitle("Node Editor")
+        self.change_title()
         self.show()
 
+    def change_title(self) -> None:
+        "Update window title."
+        title = "Node Editor - "
+        if not self.filename:
+            title += "New"
+        else:
+            title += Path(self.filename).name
+
+        if self.centralWidget().scene.has_been_modified:
+            title += "*"
+        self.setWindowTitle(title)
+
+    @override
+    def closeEvent(self, event: QCloseEvent) -> None:
+        "Ignore window close event if user cancels the save dialog."
+        if self.maybe_save():
+            event.accept()
+        else:
+            event.ignore()
+
+    @property
+    def modified(self) -> bool:
+        "Checks if the document has been modified."
+        return self.centralWidget().scene.has_been_modified
+
+    def maybe_save(self) -> bool:
+        "Check if the document has unsaved changes and save if requested."
+        if not self.modified:
+            return True
+        sb = QMessageBox.StandardButton
+        res = QMessageBox.warning(
+            self, "About to lose your work?",
+            "The document has been modified.\nDo you want to save changes?",
+            sb.Save | sb.Discard | sb.Cancel,
+        )
+        if res == sb.Save:
+            return self.on_file_save()
+        return res == sb.Discard
 
     def on_scene_pos_changed(self, x: int, y: int):
         self.status_mouse_pos.setText(f"Scene Pos: {x}, {y}")
 
     def on_file_new(self):
-        self.centralWidget().scene.clear()
+        if self.maybe_save():
+            self.centralWidget().scene.clear()
+            self.filename = None
+            self.change_title()
 
     def on_file_open(self):
-        fname, _ = QFileDialog.getOpenFileName(self, 'Open graph from file',
-                                               filter="JSON files (*.json)")
-        if fname == '':
-            return
-        if Path(fname).is_file():
-            self.centralWidget().scene.load_from_file(fname)
+        if self.maybe_save():
+            fname, _ = QFileDialog.getOpenFileName(self, 'Open graph from file',
+                                                   filter="JSON files (*.json)")
+            if fname == '':
+                return
+            if Path(fname).is_file():
+                try:
+                    self.centralWidget().scene.load_from_file(fname)
+                except TypedloadValueError as e:
+                    QMessageBox.critical(self, "File load error", str(e))
+                    return
+                self.filename = fname
+                self.change_title()
 
-    def on_file_save(self):
+    def on_file_save(self) -> bool:
         if self.filename is None:
             return self.on_file_save_as()
         self.centralWidget().scene.save_to_file(self.filename)
         some(self.statusBar()).showMessage(f"Successfully saved {self.filename}")
+        return True
 
-    def on_file_save_as(self):
+    def on_file_save_as(self) -> bool:
         fname, _ = QFileDialog.getSaveFileName(self, 'Save graph to file',
                                                filter="JSON files (*.json)")
         if fname == '':
-            return
+            return False
         self.filename = fname
-        self.on_file_save()
+        return self.on_file_save()
 
     def on_edit_undo(self):
         self.centralWidget().scene.history.undo()

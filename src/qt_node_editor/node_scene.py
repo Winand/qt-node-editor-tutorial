@@ -2,6 +2,7 @@
 Scene
 """
 import json
+from collections.abc import Callable
 from typing import NotRequired, TypedDict
 
 import typedload
@@ -9,9 +10,10 @@ import typedload
 from qt_node_editor.node_edge import Edge, EdgeSerialize
 from qt_node_editor.node_graphics_scene import QDMGraphicsScene
 from qt_node_editor.node_node import Node, NodeSerialize
+from qt_node_editor.node_scene_clipboard import SceneClipboard
 from qt_node_editor.node_scene_history import SceneHistory
 from qt_node_editor.node_serializable import Serializable
-from qt_node_editor.node_scene_clipboard import SceneClipboard
+
 
 class SceneSerialize(TypedDict):
     id: NotRequired[int]  # TODO: required
@@ -29,9 +31,34 @@ class Scene(Serializable):
         self.scene_width = 64000
         self.scene_height = 64000
 
+        self._has_been_modified = False
+        self._has_been_modified_listeners: list[Callable[[], None]] = []
+
         self.init_ui()
         self.history = SceneHistory(self)
         self.clipboard = SceneClipboard(self)
+
+    @property
+    def has_been_modified(self) -> bool:
+        "Check if the scene is modified."
+        return self._has_been_modified
+
+    @has_been_modified.setter
+    def has_been_modified(self, value: bool) -> None:
+        if not self._has_been_modified and value:
+            self._has_been_modified = True
+            for callback in self._has_been_modified_listeners:
+                callback()
+        self._has_been_modified = value
+
+    def add_has_been_modified_listener(self, callback: Callable[[], None]) -> None:
+        """
+        Add a new callback to be called when the scene is modified.
+
+        :param callback: A callback function
+        :type callback: Callable[[], None]
+        """
+        self._has_been_modified_listeners.append(callback)
 
     def init_ui(self):
         self.gr_scene = QDMGraphicsScene(self)
@@ -53,11 +80,14 @@ class Scene(Serializable):
         "Clear the scene."
         while len(self.nodes) > 0:
             self.nodes[0].remove()
+        self.has_been_modified = False
+        # TODO: clear history here? see self.history.history_stack
 
     def save_to_file(self, filename: str):
         "Save the scene to file."
         with open(filename, "w", encoding="utf-8") as file:
             file.write(json.dumps(self.serialize(), indent=4))
+        self.has_been_modified = False
         print(f"Saving to {filename} was successfull")
     
     def load_from_file(self, filename: str):
@@ -65,6 +95,7 @@ class Scene(Serializable):
         with open(filename, "r", encoding="utf-8") as file:
             data = typedload.load(json.load(file), SceneSerialize)
             self.deserialize(data)
+        self.has_been_modified = False
 
     def serialize(self) -> SceneSerialize:
         nodes = [n.serialize() for n in self.nodes]
