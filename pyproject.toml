@@ -5,15 +5,15 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "qtpy>=2.4.2",
+    "qtpy>=2.4.3",
     "typedload>=2.39",
 ]
 
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["uv_build>=0.9.13,<0.10.0"]
+build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
-    "pyqt6>=6.8.0",
+    "pyqt6>=6.10.0",
 ]
