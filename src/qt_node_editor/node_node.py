@@ -45,7 +45,7 @@ class Node(Serializable):
         self.outputs: list[Socket] = []
         for counter, item in enumerate(inputs or []):
             socket = Socket(self, index=counter, position=Pos.LEFT_BOTTOM,
-                            socket_type=item)
+                            socket_type=item, multi_edges=False)
             self.inputs.append(socket)
         for counter, item in enumerate(outputs or []):
             socket = Socket(self, index=counter, position=Pos.RIGHT_TOP,
@@ -89,16 +89,16 @@ class Node(Serializable):
     def update_connected_edges(self):
         "Update location of edges connected to the node."
         for socket in self.inputs + self.outputs:
-            if socket.has_edge():
-                socket.edge.update_positions()
+            for edge in socket.edges:
+                edge.update_positions()
 
     def remove(self):
         log.debug("> Removing node %s", self)
         log.debug(" - remove all edges from sockets")
         for socket in (self.inputs + self.outputs):
-            if socket.has_edge():
-                log.debug("    - removing from socket %s edge %s", socket,  socket.edge)
-                socket.edge.remove()
+            for edge in socket.edges:
+                log.debug("    - removing from socket %s edge %s", socket, edge)
+                edge.remove()
         log.debug(" - remove gr_node")
         self.scene.gr_scene.removeItem(self.gr_node)
         self.gr_node = None
@@ -136,7 +136,7 @@ class Node(Serializable):
         for socket_data in data["inputs"]:
             new_socket = Socket(node=self, index=socket_data["index"],
                                 position=socket_data["position"],
-                                socket_type=socket_data["socket_type"])
+                                socket_type=socket_data["socket_type"])  # FIXME: multi_edges=False?
             new_socket.deserialize(socket_data, hashmap, restore_id)
             self.inputs.append(new_socket)
 

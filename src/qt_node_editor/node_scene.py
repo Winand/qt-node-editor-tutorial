@@ -2,6 +2,7 @@
 Scene
 """
 import json
+import logging
 from collections.abc import Callable
 from typing import NotRequired, TypedDict
 
@@ -13,6 +14,8 @@ from qt_node_editor.node_node import Node, NodeSerialize
 from qt_node_editor.node_scene_clipboard import SceneClipboard
 from qt_node_editor.node_scene_history import SceneHistory
 from qt_node_editor.node_serializable import Serializable
+
+log = logging.getLogger(__name__)
 
 
 class SceneSerialize(TypedDict):
@@ -71,10 +74,16 @@ class Scene(Serializable):
         self.edges.append(edge)
 
     def remove_node(self, node: "Node"):
-        self.nodes.remove(node)
+        if node in self.nodes:
+            self.nodes.remove(node)
+        else:
+            log.warning("Node %s not found in the scene node list.", node)
 
     def remove_edge(self, edge: "Edge"):
-        self.edges.remove(edge)
+        if edge in self.edges:
+            self.edges.remove(edge)
+        else:
+            log.warning("Node %s not found in the scene edge list.", edge)
 
     def clear(self):
         "Clear the scene."

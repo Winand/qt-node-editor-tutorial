@@ -192,7 +192,7 @@ class QDMGraphicsView(QGraphicsView):
             if isinstance(item, QDMGraphicsEdge):
                 print(f"MMB DEBUG: {item.edge}")
             elif isinstance(item, QDMGraphicsSocket):
-                print(f"MMB DEBUG: {item.socket} has edge {item.socket.edge}")
+                print(f"MMB DEBUG: {item.socket} has edge {item.socket.edges}")
             elif item is None:
                 print('SCENE:')
                 print('  Nodes:')
@@ -288,8 +288,8 @@ class QDMGraphicsView(QGraphicsView):
     def edge_drag_start(self, item: QDMGraphicsSocket):
         log.debug("Start dragging edge")
         log.debug("  assign Start Socket to: %s", item.socket)
-        self.previous_edge = item.socket.edge  # FIXME: last_start_socket is enough?
-        self.last_start_socket = item.socket
+        # self.previous_edge = item.socket.edges  # FIXME: last_start_socket is enough?
+        self.drag_start_socket = item.socket
         self.drag_edge = Edge(self._scene, item.socket, None, EdgeType.BEZIER)
         log.debug("  drag_edge: %s", self.drag_edge)
 
@@ -301,35 +301,48 @@ class QDMGraphicsView(QGraphicsView):
             # edge_drag_start sets up drag_edge
             # Edge.remove sets gr_edge to None
             raise ValueError
+        log.debug("End dragging edge")
+        self.drag_edge.remove()
+        self.drag_edge = None
 
         if isinstance(item, QDMGraphicsSocket) and \
-                item.socket is not self.last_start_socket:
-            log.debug("  previous_edge=%s", self.previous_edge)
-            if item.socket.has_edge():
-                item.socket.edge.remove()
-            log.debug("  assign end socket %s", item.socket)
-            if self.previous_edge is not None:
-                self.previous_edge.remove()
-            log.debug(" previous edge removed")
-            self.drag_edge.start_socket = self.last_start_socket
-            self.drag_edge.end_socket = item.socket
-            self.drag_edge.start_socket.set_connected_edge(self.drag_edge)
-            self.drag_edge.end_socket.set_connected_edge(self.drag_edge)
-            log.debug(" reassigned start/end sockets to drag edge")
-            self.drag_edge.update_positions()
+                item.socket is not self.drag_start_socket:
+            # if we release dragging on a socket other than the start socket
+            # log.debug("  previous_edge=%s", self.previous_edge)
+
+            # if item.socket.has_edge():
+            #     item.socket.edges.remove()
+
+            if not item.socket.is_multi_edges:  # clear target socket if needed
+                item.socket.remove_all_edges()
+            if not self.drag_start_socket.is_multi_edges:  # clear start socket
+                self.drag_start_socket.remove_all_edges()
+
+            # log.debug("  assign end socket %s", item.socket)
+            # if self.previous_edge is not None:
+            #     self.previous_edge.remove()
+            # log.debug(" previous edge removed")
+            # self.drag_edge.start_socket = self.drag_start_socket
+            # self.drag_edge.end_socket = item.socket
+            # self.drag_edge.start_socket.add_edge(self.drag_edge)
+            # self.drag_edge.end_socket.add_edge(self.drag_edge)
+            # log.debug(" reassigned start/end sockets to drag edge")
+            # self.drag_edge.update_positions()
+
+            new_edge = Edge(self._scene, self.drag_start_socket, item.socket, EdgeType.BEZIER)
+            log.debug("created a new edge %s connecting %s <--> %s",
+                      new_edge, new_edge.start_socket, new_edge.end_socket)
+
             self._scene.history.store_history("Created new edge by dragging",
                                               modified=True)
             return True
 
         # Cancel:
-        log.debug("End dragging edge")
-        self.drag_edge.remove()
-        self.drag_edge = None
-        log.debug("about to set socket to previous edge: %s", self.previous_edge)
-        if self.previous_edge is not None:
-            if not self.previous_edge.start_socket:
-                raise ValueError  # @Winand
-            self.previous_edge.start_socket.edge = self.previous_edge
+        # log.debug("about to set socket to previous edge: %s", self.previous_edge)
+        # if self.previous_edge is not None:
+        #     if not self.previous_edge.start_socket:
+        #         raise ValueError  # @Winand
+        #     self.previous_edge.start_socket.edges = self.previous_edge
         log.debug("everything done.")
         return False
     
