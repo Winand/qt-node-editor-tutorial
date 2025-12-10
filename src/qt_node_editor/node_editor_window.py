@@ -5,9 +5,10 @@ from pathlib import Path
 from typing import override
 
 import typedload
-from typedload.exceptions import TypedloadValueError
-from qtpy.QtGui import QAction, QCloseEvent, QGuiApplication
+from qtpy.QtCore import QPoint, QSettings, QSize
+from qtpy.QtGui import QAction, QCloseEvent, QGuiApplication, QKeySequence
 from qtpy.QtWidgets import QApplication, QFileDialog, QLabel, QMainWindow, QMessageBox
+from typedload.exceptions import TypedloadException
 
 from qt_node_editor.node_editor_widget import NodeEditorWidget
 from qt_node_editor.node_graphics_view import QDMGraphicsView
@@ -18,7 +19,7 @@ log = logging.getLogger(__name__)
 
 
 class NodeEditorWindow(QMainWindow):
-    centralWidget: Callable[[], NodeEditorWidget]  # noqa: N815
+    centralWidget: Callable[[], NodeEditorWidget]  # pyright: ignore[reportIncompatibleMethodOverride] # noqa: N815
 
     def __init__(self):
         super().__init__()
@@ -26,69 +27,82 @@ class NodeEditorWindow(QMainWindow):
         self.filename: str | None = None
         self.init_ui()
 
-    def create_act(self, name: str, shortcut: str, tooltip: str, callback):
+    def create_act(self, name: str, callback: Callable[[], bool | None],
+                   shortcut: str | QKeySequence.StandardKey = "", tooltip: str = "") -> QAction:
         act = QAction(name, self)
-        act.setShortcut(shortcut)
-        act.setToolTip(tooltip)
+        if shortcut:
+            act.setShortcut(shortcut)
+        if tooltip:
+            act.setToolTip(tooltip)
         act.triggered.connect(callback)
         return act
 
     def init_ui(self):
-        menu_bar = some(self.menuBar())
+        self.name_company = "Winand"
+        self.name_product = "NodeEditor"
 
-        file_menu = some(menu_bar.addMenu('&File'))
-        file_menu.addAction(self.create_act(
-            '&New', 'Ctrl+N', "Create new graph", self.on_file_new
-        ))
-        file_menu.addSeparator()
-        file_menu.addAction(self.create_act(
-            '&Open', 'Ctrl+O', "Open file", self.on_file_open
-        ))
-        file_menu.addAction(self.create_act(
-            '&Save', 'Ctrl+S', "Save file", self.on_file_save
-        ))
-        file_menu.addAction(self.create_act(
-            'Save &As...', 'Ctrl+Shift+S', "Save file as...", self.on_file_save_as
-        ))
-        file_menu.addSeparator()
-        file_menu.addAction(self.create_act(
-            'E&xit', 'Ctrl+Q', "Exit application", self.close
-        ))
-
-        edit_menu = some(menu_bar.addMenu("&Edit"))
-        edit_menu.addAction(self.create_act(
-            '&Undo', 'Ctrl+Z', "Undo last operation", self.on_edit_undo
-        ))
-        edit_menu.addAction(self.create_act(
-            '&Redo', 'Ctrl+Y', "Redo last operation", self.on_edit_redo
-        ))
-        edit_menu.addSeparator()
-        edit_menu.addAction(self.create_act(
-            'Cu&t', 'Ctrl+X', "Cut to clipboard", self.on_edit_cut
-        ))
-        edit_menu.addAction(self.create_act(
-            '&Copy', 'Ctrl+C', "Copy to clipboard", self.on_edit_copy
-        ))
-        edit_menu.addAction(self.create_act(
-            '&Paste', 'Ctrl+V', "Paste from clipboard", self.on_edit_paste
-        ))
-        edit_menu.addSeparator()
-        edit_menu.addAction(self.create_act(
-            '&Delete', 'Del', "Delete selected items", self.on_edit_delete
-        ))
+        self.create_menus()
 
         nodeeditor = NodeEditorWidget(self)
         nodeeditor.scene.add_has_been_modified_listener(self.change_title)
         self.setCentralWidget(nodeeditor)
 
-        self.status_mouse_pos = QLabel("")
-        some(self.statusBar()).addPermanentWidget(self.status_mouse_pos)
-        nodeeditor.view.scene_pos_changed.connect(self.on_scene_pos_changed)
+        self.create_status_bar()
 
         # Set window properties
         self.setGeometry(200, 200, 800, 600)
         self.change_title()
         self.show()
+
+    def create_status_bar(self) -> None:
+        some(self.statusBar()).showMessage("")
+        self.status_mouse_pos = QLabel("")
+        some(self.statusBar()).addPermanentWidget(self.status_mouse_pos)
+        self.centralWidget().view.scene_pos_changed.connect(self.on_scene_pos_changed)
+
+    def create_menus(self) -> None:
+        menu_bar = some(self.menuBar())
+
+        file_menu = some(menu_bar.addMenu('&File'))
+        file_menu.addAction(self.create_act(
+            '&New', self.on_file_new, 'Ctrl+N', "Create new graph",
+        ))
+        file_menu.addSeparator()
+        file_menu.addAction(self.create_act(
+            '&Open', self.on_file_open, 'Ctrl+O', "Open file",
+        ))
+        file_menu.addAction(self.create_act(
+            '&Save', self.on_file_save, 'Ctrl+S', "Save file",
+        ))
+        file_menu.addAction(self.create_act(
+            'Save &As...', self.on_file_save_as, 'Ctrl+Shift+S', "Save file as...",
+        ))
+        file_menu.addSeparator()
+        file_menu.addAction(self.create_act(
+            'E&xit', self.close, 'Ctrl+Q', "Exit application",
+        ))
+
+        edit_menu = some(menu_bar.addMenu("&Edit"))
+        edit_menu.addAction(self.create_act(
+            '&Undo', self.on_edit_undo, 'Ctrl+Z', "Undo last operation",
+        ))
+        edit_menu.addAction(self.create_act(
+            '&Redo', self.on_edit_redo, 'Ctrl+Y', "Redo last operation",
+        ))
+        edit_menu.addSeparator()
+        edit_menu.addAction(self.create_act(
+            'Cu&t', self.on_edit_cut, 'Ctrl+X', "Cut to clipboard",
+        ))
+        edit_menu.addAction(self.create_act(
+            '&Copy', self.on_edit_copy, 'Ctrl+C', "Copy to clipboard",
+        ))
+        edit_menu.addAction(self.create_act(
+            '&Paste', self.on_edit_paste, 'Ctrl+V', "Paste from clipboard",
+        ))
+        edit_menu.addSeparator()
+        edit_menu.addAction(self.create_act(
+            '&Delete', self.on_edit_delete, 'Del', "Delete selected items",
+        ))
 
     def change_title(self) -> None:
         "Update window title."
@@ -113,7 +127,11 @@ class NodeEditorWindow(QMainWindow):
     @property
     def modified(self) -> bool:
         "Checks if the document has been modified."
-        return self.centralWidget().scene.has_been_modified
+        try:
+            return self.centralWidget().scene.has_been_modified
+        except AttributeError as e:
+            print(e)
+            return False
 
     def maybe_save(self) -> bool:
         "Check if the document has unsaved changes and save if requested."
@@ -147,7 +165,7 @@ class NodeEditorWindow(QMainWindow):
             if Path(fname).is_file():
                 try:
                     self.centralWidget().scene.load_from_file(fname)
-                except TypedloadValueError as e:
+                except TypedloadException as e:
                     QMessageBox.critical(self, "File load error", str(e))
                     return
                 self.filename = fname
@@ -203,3 +221,15 @@ class NodeEditorWindow(QMainWindow):
             log.error("JSON is not a valid scene: %s", e)
             return
         self.centralWidget().scene.clipboard.deserialize_from_clipboard(data)
+
+    def read_settings(self):
+        settings = QSettings(self.name_company, self.name_product)
+        pos = settings.value("pos", QPoint(200, 200))
+        size = settings.value("size", QSize(400, 400))
+        self.move(pos)
+        self.resize(size)
+
+    def write_settings(self):
+        settings = QSettings(self.name_company, self.name_product)
+        settings.setValue("pos", self.pos())
+        settings.setValue("size", self.size())

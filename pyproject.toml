@@ -17,3 +17,7 @@ build-backend = "uv_build"
 dev = [
     "pyqt6>=6.10.0",
 ]
+
+[tool.pyright]
+# https://github.com/spyder-ide/qtpy?tab=readme-ov-file#type-checker-integration
+defineConstant = { PYQT5=false, PYSIDE2=false, PYQT6=true, PYSIDE6=false }
