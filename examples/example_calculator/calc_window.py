@@ -1,6 +1,8 @@
 from collections.abc import Callable
-from typing import override
+from functools import partial
+from typing import cast, override
 
+from calc_sub_window import CalculatorSubWindow
 from qtpy.QtCore import Qt
 from qtpy.QtGui import QCloseEvent, QKeySequence
 from qtpy.QtWidgets import (
@@ -64,6 +66,11 @@ class CalculatorWindow(NodeEditorWindow):
     def update_menus(self) -> None:
         ...
 
+    @override
+    def on_file_new(self) -> None:
+        sub_wnd = self.create_mdi_child()
+        sub_wnd.show()
+
     def about(self) -> None:
         QMessageBox.about(self, "About Calculator NodeEditor Example",
             "The <b>Calculator NodeEditor</b> example demonstrates how to write "
@@ -108,10 +115,16 @@ class CalculatorWindow(NodeEditorWindow):
         windows = self.mdi_area.subWindowList()
         if len(windows) > 0:
             self.menu_window.addSeparator()
-        # for i, window in enumerate(windows):
-        #     child = some(window.widget())
-        #     text = "%d %s" % (i + 1, child.userFriendlyCurrentFile())
+        for i, window in enumerate(windows):
+            child = cast(CalculatorSubWindow, window.widget())
+            text = f"{i + 1} {child.get_user_friendly_filename()}"
+            if i < 9:
+                text = f"&{text}"
 
+            action = some(self.menu_window.addAction(text))
+            action.setCheckable(True)
+            action.setChecked(child is self.active_mdi_child())
+            action.triggered.connect(partial(self.set_active_subwindow, window=window))
 
     def create_toolbars(self) -> None:
         ...
@@ -127,6 +140,16 @@ class CalculatorWindow(NodeEditorWindow):
 
     def create_statusbar(self) -> None:
         self.statusBar().showMessage("Ready")
+
+    def create_mdi_child(self) -> QMdiSubWindow:
+        nodeeditor = CalculatorSubWindow()
+        return some(self.mdi_area.addSubWindow(nodeeditor))
+
+    def active_mdi_child(self) -> CalculatorSubWindow | None:
+        "Return NodeEditorWidget."
+        if active_subwindow := self.mdi_area.activeSubWindow():
+            return cast(CalculatorSubWindow, active_subwindow.widget())
+        return None
 
     def set_active_subwindow(self, window: QMdiSubWindow | None):
         if window:

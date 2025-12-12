@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 import pkgutil
 from typing import cast
 
@@ -23,6 +24,9 @@ class NodeEditorWidget(QWidget):
         super().__init__(parent)
         self.stylesheet_filename = "qss/nodestyle.qss"
         self.loadStylesheet(self.stylesheet_filename)
+
+        self.filename: str | None = None
+
         self.init_ui()
 
     def init_ui(self):
@@ -43,6 +47,15 @@ class NodeEditorWidget(QWidget):
         self._layout.addWidget(self.view)
 
         # self.add_debug_content()
+
+    @property
+    def is_modified(self) -> bool:
+        "Return True if the scene has been modified."
+        return self.scene.has_been_modified
+
+    def get_user_friendly_filename(self) -> str:
+        name = Path(self.filename).name if self.filename is not None else "New Graph"
+        return name + ("*" if self.is_modified else "")
 
     def add_nodes(self):
         node1 = Node(self.scene, "My Awesome Node 1",

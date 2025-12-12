@@ -24,7 +24,6 @@ class NodeEditorWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.app = QApplication.instance() @As(QGuiApplication)
-        self.filename: str | None = None
         self.init_ui()
 
     def create_act(self, name: str, callback: Callable[[], bool | None],
@@ -44,21 +43,21 @@ class NodeEditorWindow(QMainWindow):
         self.create_menus()
 
         nodeeditor = NodeEditorWidget(self)
-        nodeeditor.scene.add_has_been_modified_listener(self.change_title)
+        nodeeditor.scene.add_has_been_modified_listener(self.set_title)
         self.setCentralWidget(nodeeditor)
 
         self.create_status_bar()
 
         # Set window properties
         self.setGeometry(200, 200, 800, 600)
-        self.change_title()
+        self.set_title()
         self.show()
 
     def create_status_bar(self) -> None:
         some(self.statusBar()).showMessage("")
         self.status_mouse_pos = QLabel("")
         some(self.statusBar()).addPermanentWidget(self.status_mouse_pos)
-        self.centralWidget().view.scene_pos_changed.connect(self.on_scene_pos_changed)
+        self.get_current_nodeeditor_widget().view.scene_pos_changed.connect(self.on_scene_pos_changed)
 
     def create_menus(self) -> None:
         menu_bar = some(self.menuBar())
@@ -104,16 +103,11 @@ class NodeEditorWindow(QMainWindow):
             '&Delete', self.on_edit_delete, 'Del', "Delete selected items",
         ))
 
-    def change_title(self) -> None:
+    def set_title(self) -> None:
         "Update window title."
         title = "Node Editor - "
-        if not self.filename:
-            title += "New"
-        else:
-            title += Path(self.filename).name
+        title += self.get_current_nodeeditor_widget().get_user_friendly_filename()
 
-        if self.centralWidget().scene.has_been_modified:
-            title += "*"
         self.setWindowTitle(title)
 
     @override
@@ -125,13 +119,17 @@ class NodeEditorWindow(QMainWindow):
             event.ignore()
 
     @property
-    def modified(self) -> bool:
+    def modified(self) -> bool:  # TODO: see NodeEditorWidget.is_modified
         "Checks if the document has been modified."
         try:
-            return self.centralWidget().scene.has_been_modified
+            return self.get_current_nodeeditor_widget().scene.has_been_modified
         except AttributeError as e:
             print(e)
             return False
+
+    def get_current_nodeeditor_widget(self) -> NodeEditorWidget:
+        "Return the current NodeEditorWidget instance."
+        return self.centralWidget()
 
     def maybe_save(self) -> bool:
         "Check if the document has unsaved changes and save if requested."
@@ -152,9 +150,9 @@ class NodeEditorWindow(QMainWindow):
 
     def on_file_new(self):
         if self.maybe_save():
-            self.centralWidget().scene.clear()
+            self.get_current_nodeeditor_widget().scene.clear()
             self.filename = None
-            self.change_title()
+            self.set_title()
 
     def on_file_open(self):
         if self.maybe_save():
@@ -164,17 +162,17 @@ class NodeEditorWindow(QMainWindow):
                 return
             if Path(fname).is_file():
                 try:
-                    self.centralWidget().scene.load_from_file(fname)
+                    self.get_current_nodeeditor_widget().scene.load_from_file(fname)
                 except TypedloadException as e:
                     QMessageBox.critical(self, "File load error", str(e))
                     return
                 self.filename = fname
-                self.change_title()
+                self.set_title()
 
     def on_file_save(self) -> bool:
         if self.filename is None:
             return self.on_file_save_as()
-        self.centralWidget().scene.save_to_file(self.filename)
+        self.get_current_nodeeditor_widget().scene.save_to_file(self.filename)
         some(self.statusBar()).showMessage(f"Successfully saved {self.filename}")
         return True
 
@@ -187,22 +185,22 @@ class NodeEditorWindow(QMainWindow):
         return self.on_file_save()
 
     def on_edit_undo(self):
-        self.centralWidget().scene.history.undo()
+        self.get_current_nodeeditor_widget().scene.history.undo()
 
     def on_edit_redo(self):
-        self.centralWidget().scene.history.redo()
+        self.get_current_nodeeditor_widget().scene.history.redo()
 
     def on_edit_delete(self):
-        view = self.centralWidget().scene.gr_scene.views()[0] @As(QDMGraphicsView)
+        view = self.get_current_nodeeditor_widget().scene.gr_scene.views()[0] @As(QDMGraphicsView)
         view.delete_selected()
 
     def on_edit_cut(self):
-        data = self.centralWidget().scene.clipboard.serialize_selected(delete=True)
+        data = self.get_current_nodeeditor_widget().scene.clipboard.serialize_selected(delete=True)
         str_data = json.dumps(data, indent=4)
         some(self.app.clipboard()).setText(str_data)
 
     def on_edit_copy(self):
-        data = self.centralWidget().scene.clipboard.serialize_selected(delete=False)
+        data = self.get_current_nodeeditor_widget().scene.clipboard.serialize_selected(delete=False)
         str_data = json.dumps(data, indent=4)
         some(self.app.clipboard()).setText(str_data)
 
@@ -220,7 +218,7 @@ class NodeEditorWindow(QMainWindow):
         except (ValueError, TypeError) as e:
             log.error("JSON is not a valid scene: %s", e)
             return
-        self.centralWidget().scene.clipboard.deserialize_from_clipboard(data)
+        self.get_current_nodeeditor_widget().scene.clipboard.deserialize_from_clipboard(data)
 
     def read_settings(self):
         settings = QSettings(self.name_company, self.name_product)
