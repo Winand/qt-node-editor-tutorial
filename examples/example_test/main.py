@@ -3,10 +3,12 @@ import configparser
 import logging
 import os
 import sys
+from pathlib import Path
 
 from qtpy.QtWidgets import QApplication
 
 from qt_node_editor.node_editor_window import NodeEditorWindow
+from qt_node_editor.utils import load_stylesheet
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -27,4 +29,5 @@ if __name__ == '__main__':
 
     app = QApplication(sys.argv)
     wnd = NodeEditorWindow()
+    load_stylesheet(Path("qss/nodestyle.qss"))
     sys.exit(app.exec())

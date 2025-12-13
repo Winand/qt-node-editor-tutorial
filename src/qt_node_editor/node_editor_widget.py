@@ -1,14 +1,20 @@
 import logging
 from pathlib import Path
-import pkgutil
 from typing import cast
 
 from qtpy.QtCore import Qt
 from qtpy.QtGui import QBrush, QColor, QFont, QPen
-from qtpy.QtWidgets import (QApplication, QGraphicsItem, QGraphicsLineItem,
-                            QGraphicsProxyWidget, QGraphicsRectItem,
-                            QGraphicsTextItem, QPushButton, QTextEdit,
-                            QVBoxLayout, QWidget)
+from qtpy.QtWidgets import (
+    QGraphicsItem,
+    QGraphicsLineItem,
+    QGraphicsProxyWidget,
+    QGraphicsRectItem,
+    QGraphicsTextItem,
+    QPushButton,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
+)
 
 from qt_node_editor.node_edge import Edge, EdgeType
 from qt_node_editor.node_graphics_view import QDMGraphicsView
@@ -22,8 +28,6 @@ log = logging.getLogger(__name__)
 class NodeEditorWidget(QWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self.stylesheet_filename = "qss/nodestyle.qss"
-        self.loadStylesheet(self.stylesheet_filename)
 
         self.filename: str | None = None
 
@@ -102,11 +106,3 @@ class NodeEditorWidget(QWidget):
         line = cast(QGraphicsLineItem,
                     self.scene.gr_scene.addLine(-200, -200, 400, -100, outline_pen))
         line.setFlag(GraphicsItemFlag.ItemIsMovable | GraphicsItemFlag.ItemIsSelectable)
-
-    def loadStylesheet(self, filename: str):
-        log.info("Style loading: %s", filename)
-        # Load file from package https://stackoverflow.com/a/58941536
-        if (stylesheet := pkgutil.get_data(__name__, filename)) is None:
-            raise FileNotFoundError(f"Cannot load {filename}")
-        cast(QApplication, QApplication.instance()) \
-            .setStyleSheet(stylesheet.decode())

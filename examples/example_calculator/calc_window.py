@@ -1,7 +1,9 @@
 from collections.abc import Callable
 from functools import partial
+from pathlib import Path
 from typing import cast, override
 
+import qss.nodeeditor_dark_resources  # noqa: F401 images for the dark skin
 from calc_sub_window import CalculatorSubWindow
 from qtpy.QtCore import Qt
 from qtpy.QtGui import QCloseEvent, QKeySequence
@@ -16,7 +18,7 @@ from qtpy.QtWidgets import (
 )
 
 from qt_node_editor.node_editor_window import NodeEditorWindow
-from qt_node_editor.utils import some
+from qt_node_editor.utils import load_stylesheets, some
 
 
 class CalculatorWindow(NodeEditorWindow):
@@ -29,6 +31,12 @@ class CalculatorWindow(NodeEditorWindow):
     def init_ui(self) -> None:
         self.name_company = "Winand"
         self.name_product = "Calculator NodeEditor"
+
+        self.stylesheet_filename = Path(__file__).parent / "qss/nodeeditor.qss"
+        load_stylesheets(
+            Path(__file__).parent / "qss/nodeeditor-dark.qss",
+            self.stylesheet_filename,
+        )
 
         self.mdi_area = QMdiArea()
         self.mdi_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)

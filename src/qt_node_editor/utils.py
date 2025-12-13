@@ -1,4 +1,11 @@
-from typing import (Any, Generic, Type, TypeVar, cast)
+import logging
+import pkgutil
+from pathlib import Path
+from typing import Any, Generic, Type, TypeVar, cast
+
+from qtpy.QtWidgets import QApplication
+
+log = logging.getLogger(__name__)
 
 T = TypeVar("T")
 V = TypeVar("V")
@@ -29,3 +36,36 @@ class _Some():
         return cast(T, other)
 
 Some = _Some()
+
+
+def _load_stylesheet(filename: Path) -> str:
+    if filename.is_file():
+        stylesheet = filename.read_bytes()
+    # Load file from package https://stackoverflow.com/a/58941536
+    elif (stylesheet := pkgutil.get_data(__name__, str(filename))) is None:
+        msg = f"Cannot load {filename}"
+        raise FileNotFoundError(msg)
+    return stylesheet.decode()
+
+
+def load_stylesheet(filename: Path) -> None:
+    """
+    Apply stylesheet from file to application.
+
+    File can be external or built-in in the package.
+    """
+    log.info("Style loading: %s", filename)
+    cast(QApplication, QApplication.instance()) \
+        .setStyleSheet(_load_stylesheet(filename))
+
+
+def load_stylesheets(*filenames: Path) -> None:
+    """
+    Apply combined stylesheet from files to application.
+
+    Files can be external or built-in in the package.
+    """
+    log.info("Style loading: %s", filenames)
+    cast(QApplication, QApplication.instance()).setStyleSheet(
+        "\n".join(map(_load_stylesheet, filenames)),
+    )

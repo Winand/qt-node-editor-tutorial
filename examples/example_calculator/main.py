@@ -25,6 +25,7 @@ if __name__ == '__main__':
             logging.getLogger(logger_name).setLevel(level.upper())
 
     app = QApplication(sys.argv)
+    app.setStyle("Fusion")
     wnd = CalculatorWindow()
     wnd.show()
     sys.exit(app.exec())
