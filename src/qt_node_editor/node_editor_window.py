@@ -174,6 +174,7 @@ class NodeEditorWindow(QMainWindow):
             return self.on_file_save_as()
         editor.save_file()
         some(self.statusBar()).showMessage(f"Successfully saved {editor.filename}")
+        self.set_title()
         return True
 
     def on_file_save_as(self) -> bool:
@@ -184,6 +185,7 @@ class NodeEditorWindow(QMainWindow):
         editor = self.get_current_nodeeditor_widget()
         editor.save_file(Path(fname))
         some(self.statusBar()).showMessage(f"Successfully saved as {editor.filename}")
+        self.set_title()
         return True
 
     def on_edit_undo(self):
