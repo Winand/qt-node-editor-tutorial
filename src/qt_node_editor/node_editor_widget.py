@@ -5,11 +5,13 @@ from typing import cast
 from qtpy.QtCore import Qt
 from qtpy.QtGui import QBrush, QColor, QFont, QPen
 from qtpy.QtWidgets import (
+    QApplication,
     QGraphicsItem,
     QGraphicsLineItem,
     QGraphicsProxyWidget,
     QGraphicsRectItem,
     QGraphicsTextItem,
+    QMessageBox,
     QPushButton,
     QTextEdit,
     QVBoxLayout,
@@ -19,7 +21,7 @@ from qtpy.QtWidgets import (
 from qt_node_editor.node_edge import Edge, EdgeType
 from qt_node_editor.node_graphics_view import QDMGraphicsView
 from qt_node_editor.node_node import Node
-from qt_node_editor.node_scene import Scene
+from qt_node_editor.node_scene import InvalidSceneFileError, Scene
 
 GraphicsItemFlag = QGraphicsItem.GraphicsItemFlag
 log = logging.getLogger(__name__)
@@ -29,7 +31,7 @@ class NodeEditorWidget(QWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
 
-        self.filename: str | None = None
+        self.filename: Path | None = None
 
         self.init_ui()
 
@@ -58,8 +60,33 @@ class NodeEditorWidget(QWidget):
         return self.scene.has_been_modified
 
     def get_user_friendly_filename(self) -> str:
-        name = Path(self.filename).name if self.filename is not None else "New Graph"
+        name = self.filename.name if self.filename is not None else "New Graph"
         return name + ("*" if self.is_modified else "")
+
+    def load_file(self, filename: Path) -> bool:
+        "Load a scene from a file."
+        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        try:
+            self.scene.load_from_file(filename)
+        except InvalidSceneFileError as e:
+            QApplication.restoreOverrideCursor()
+            cause = f"{e}:\n{e.__cause__ or "Unknown cause"}"
+            QMessageBox.warning(self, f"Error loading {filename.name}", cause)
+            return False
+        self.filename = filename
+        # TODO: clear history !!
+        QApplication.restoreOverrideCursor()
+        return True
+
+    def save_file(self, filename: Path | None = None) -> bool:
+        "Save the scene to a file."
+        if filename:
+            self.filename = filename  # TODO: unnecessary side effect?
+        assert self.filename, "File name is required to save the scene."
+        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        self.scene.save_to_file(self.filename)
+        QApplication.restoreOverrideCursor()
+        return True
 
     def add_nodes(self):
         node1 = Node(self.scene, "My Awesome Node 1",

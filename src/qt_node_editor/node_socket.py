@@ -3,7 +3,7 @@ Socket
 """
 import logging
 from enum import Enum, auto
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, NotRequired, TypedDict
 
 from qt_node_editor.node_graphics_socket import QDMGraphicsSocket
 from qt_node_editor.node_serializable import Serializable
@@ -23,7 +23,7 @@ class Pos(int, Enum):
 class SocketSerialize(TypedDict):
     id: int
     index: int
-    multi_edges: bool
+    multi_edges: NotRequired[bool]
     position: Pos
     socket_type: int
 
@@ -72,6 +72,13 @@ class Socket(Serializable):
     #     "Check if an edge is connected to the socket."
     #     return self.edges is not None
 
+    def determine_multi_edges(self, data: SocketSerialize) -> bool:
+        "Get multi_edges property from data, by default return True for right sockets."
+        return data.get(
+            "multi_edges", data["position"] in { Pos.RIGHT_TOP, Pos.RIGHT_BOTTOM },
+        )
+
+
     def serialize(self) -> SocketSerialize:
         return {
             "id": self.id,
@@ -85,7 +92,7 @@ class Socket(Serializable):
                     restore_id=True):
         if restore_id:
             self.id = data["id"]
-        self.is_multi_edges = data["multi_edges"]  # TODO: not in __init__? https://youtu.be/sKzNjQb3eWA?t=268
+        self.is_multi_edges = self.determine_multi_edges(data)  # TODO: in __init__? https://youtu.be/sKzNjQb3eWA?t=268
         # NOTE: data["id"] is used even w/ restore_id=False
         # so edges can find the right sockets on copy
         hashmap[data["id"]] = self

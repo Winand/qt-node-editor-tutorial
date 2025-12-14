@@ -4,9 +4,11 @@ Scene
 import json
 import logging
 from collections.abc import Callable
+from pathlib import Path
 from typing import NotRequired, TypedDict
 
 import typedload
+from typedload.exceptions import TypedloadException
 
 from qt_node_editor.node_edge import Edge, EdgeSerialize
 from qt_node_editor.node_graphics_scene import QDMGraphicsScene
@@ -17,6 +19,8 @@ from qt_node_editor.node_serializable import Serializable
 
 log = logging.getLogger(__name__)
 
+class InvalidSceneFileError(Exception):
+    "Invalid scene file."
 
 class SceneSerialize(TypedDict):
     id: NotRequired[int]  # TODO: required
@@ -92,18 +96,25 @@ class Scene(Serializable):
         self.has_been_modified = False
         # TODO: clear history here? see self.history.history_stack
 
-    def save_to_file(self, filename: str):
+    def save_to_file(self, filename: Path) -> None:
         "Save the scene to file."
-        with open(filename, "w", encoding="utf-8") as file:
+        with filename.open("w", encoding="utf-8") as file:
             file.write(json.dumps(self.serialize(), indent=4))
         self.has_been_modified = False
         print(f"Saving to {filename} was successfull")
-    
-    def load_from_file(self, filename: str):
+
+    def load_from_file(self, filename: Path) -> None:
         "Load scene from file."
-        with open(filename, "r", encoding="utf-8") as file:
-            data = typedload.load(json.load(file), SceneSerialize)
-            self.deserialize(data)
+        try:
+            with filename.open(encoding="utf-8") as file:
+                data = typedload.load(json.load(file), SceneSerialize)
+        except json.JSONDecodeError as e:
+            msg = f"{filename.name} is not a valid JSON file"
+            raise InvalidSceneFileError(msg) from e
+        except TypedloadException as e:
+            msg = f"{filename.name} is not a valid scene file"
+            raise InvalidSceneFileError(msg) from e
+        self.deserialize(data)
         self.has_been_modified = False
 
     def serialize(self) -> SceneSerialize:

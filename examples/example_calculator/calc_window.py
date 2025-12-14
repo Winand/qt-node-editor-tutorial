@@ -9,6 +9,7 @@ from qtpy.QtCore import Qt
 from qtpy.QtGui import QCloseEvent, QKeySequence
 from qtpy.QtWidgets import (
     QDockWidget,
+    QFileDialog,
     QListWidget,
     QMdiArea,
     QMdiSubWindow,
@@ -51,6 +52,7 @@ class CalculatorWindow(NodeEditorWindow):
         # self.window_mapper = QSignalMapper(self)
         # self.window_mapper.mapping(QWidget).connect(self.set_active_subwindow)
 
+        self.create_actions()
         self.create_menus()
         self.create_toolbars()
         self.create_statusbar()
@@ -71,19 +73,93 @@ class CalculatorWindow(NodeEditorWindow):
             self.write_settings()
             event.accept()
 
-    def update_menus(self) -> None:
-        ...
+    def update_menus(self, window: QMdiSubWindow | None = None) -> None:
+        "Disable some menu actions based on the presence of an active window."
+        has_active_doc = window is not None
+        self.act_file_save.setEnabled(has_active_doc)
+        self.act_file_save_as.setEnabled(has_active_doc)
+
+        self.act_wnd_close.setEnabled(has_active_doc)
+        self.act_wnd_close_all.setEnabled(has_active_doc)
+        self.act_wnd_tile.setEnabled(has_active_doc)
+        self.act_wnd_cascade.setEnabled(has_active_doc)
+        self.act_wnd_next.setEnabled(has_active_doc)
+        self.act_wnd_prev.setEnabled(has_active_doc)
+
+    @override
+    def create_actions(self) -> None:
+        super().create_actions()
+        self.act_wnd_close = self.create_act(
+            "Cl&ose", self.mdi_area.closeActiveSubWindow,
+            tooltip="Close the active window")
+        self.act_wnd_close_all = self.create_act(
+            "Close &All", self.mdi_area.closeAllSubWindows,
+            tooltip="Close all the windows")
+        self.act_wnd_tile = self.create_act(
+            "&Tile", self.mdi_area.tileSubWindows, tooltip="Tile the windows")
+        self.act_wnd_cascade = self.create_act(
+            "&Cascade", self.mdi_area.cascadeSubWindows, tooltip="Cascade the windows")
+        self.act_wnd_next = self.create_act(
+            "Ne&xt", self.mdi_area.focusNextChild, QKeySequence.StandardKey.NextChild,
+            "Move the focus to the next window")
+        self.act_wnd_prev = self.create_act(
+            "Pre&vious", self.mdi_area.focusPreviousChild,
+            QKeySequence.StandardKey.PreviousChild,
+            "Move the focus to the previous window")
 
     @override
     def on_file_new(self) -> None:
         sub_wnd = self.create_mdi_child()
         sub_wnd.show()
 
+    @override
+    def on_file_save(self) -> bool:
+        if not (current_nodeeditor := self.active_mdi_child()):
+            return False
+        if not current_nodeeditor.filename:
+            return self.on_file_save_as()
+        current_nodeeditor.save_file()
+        current_nodeeditor.set_title()
+        self.statusBar().showMessage(
+            f"Successfully saved {current_nodeeditor.filename}", 5000)
+        return True
+
+    @override
+    def on_file_save_as(self) -> bool:
+        if not (current_nodeeditor := self.active_mdi_child()):
+            return False
+        fname, _ = QFileDialog.getSaveFileName(self, 'Save graph to file',
+                                               filter="JSON files (*.json)")
+        if fname == '':
+            return False
+        current_nodeeditor.save_file(Path(fname))
+        current_nodeeditor.set_title()
+        self.statusBar().showMessage(f"Successfully saved as {fname}", 5000)
+        return True
+
+    @override
+    def on_file_open(self) -> None:
+        fnames, _ = QFileDialog.getOpenFileNames(self, 'Open graph from file',
+                                                 filter="JSON files (*.json)")
+        for fname in filter(Path.is_file, map(Path, fnames)):
+            if existing := self.find_mdi_child(fname):
+                self.mdi_area.setActiveSubWindow(existing)
+                continue
+            nodeeditor = CalculatorSubWindow()
+            if not nodeeditor.load_file(fname):
+                nodeeditor.close()
+                continue
+            self.statusBar().showMessage(f"File {fname} loaded", 5000)
+            nodeeditor.set_title()
+            subwnd = some(self.mdi_area.addSubWindow(nodeeditor))
+            subwnd.show()
+
     def about(self) -> None:
         QMessageBox.about(self, "About Calculator NodeEditor Example",
             "The <b>Calculator NodeEditor</b> example demonstrates how to write "
             "multiple document interface applications using Qt and NodeEditor.")
 
+    @override
     def create_menus(self) -> None:
         super().create_menus()
 
@@ -100,33 +176,22 @@ class CalculatorWindow(NodeEditorWindow):
     def update_menu_window(self) -> None:
         "Create Window menu with a list of currently opened documents."
         self.menu_window.clear()
-        self.menu_window.addAction(self.create_act(
-            "Cl&ose", self.mdi_area.closeActiveSubWindow,
-            tooltip="Close the active window"))
-        self.menu_window.addAction(self.create_act(
-            "Close &All", self.mdi_area.closeAllSubWindows,
-            tooltip="Close all the windows"))
+        self.menu_window.addAction(self.act_wnd_close)
+        self.menu_window.addAction(self.act_wnd_close_all)
         self.menu_window.addSeparator()
-        self.menu_window.addAction(self.create_act(
-            "&Tile", self.mdi_area.tileSubWindows, tooltip="Tile the windows"))
-        self.menu_window.addAction(self.create_act(
-            "&Cascade", self.mdi_area.cascadeSubWindows, tooltip="Cascade the windows"))
+        self.menu_window.addAction(self.act_wnd_tile)
+        self.menu_window.addAction(self.act_wnd_cascade)
         self.menu_window.addSeparator()
-        self.menu_window.addAction(self.create_act(
-            "Ne&xt", self.mdi_area.focusNextChild, QKeySequence.StandardKey.NextChild,
-            "Move the focus to the next window"))
-        self.menu_window.addAction(self.create_act(
-            "Pre&vious", self.mdi_area.focusPreviousChild,
-            QKeySequence.StandardKey.PreviousChild,
-            "Move the focus to the previous window"))
+        self.menu_window.addAction(self.act_wnd_next)
+        self.menu_window.addAction(self.act_wnd_prev)
 
         windows = self.mdi_area.subWindowList()
         if len(windows) > 0:
             self.menu_window.addSeparator()
-        for i, window in enumerate(windows):
+        for i, window in enumerate(windows, start=1):
             child = cast(CalculatorSubWindow, window.widget())
-            text = f"{i + 1} {child.get_user_friendly_filename()}"
-            if i < 9:
+            text = f"{i} {child.get_user_friendly_filename()}"
+            if i < 10:
                 text = f"&{text}"
 
             action = some(self.menu_window.addAction(text))
@@ -152,6 +217,13 @@ class CalculatorWindow(NodeEditorWindow):
     def create_mdi_child(self) -> QMdiSubWindow:
         nodeeditor = CalculatorSubWindow()
         return some(self.mdi_area.addSubWindow(nodeeditor))
+
+    def find_mdi_child(self, filename: Path):
+        for window in self.mdi_area.subWindowList():
+            nodeeditor = cast(CalculatorSubWindow, window.widget())
+            if nodeeditor.filename == filename:
+                return window
+        return None
 
     def active_mdi_child(self) -> CalculatorSubWindow | None:
         "Return NodeEditorWidget."

@@ -8,7 +8,6 @@ import typedload
 from qtpy.QtCore import QPoint, QSettings, QSize
 from qtpy.QtGui import QAction, QCloseEvent, QGuiApplication, QKeySequence
 from qtpy.QtWidgets import QApplication, QFileDialog, QLabel, QMainWindow, QMessageBox
-from typedload.exceptions import TypedloadException
 
 from qt_node_editor.node_editor_widget import NodeEditorWidget
 from qt_node_editor.node_graphics_view import QDMGraphicsView
@@ -40,6 +39,7 @@ class NodeEditorWindow(QMainWindow):
         self.name_company = "Winand"
         self.name_product = "NodeEditor"
 
+        self.create_actions()
         self.create_menus()
 
         nodeeditor = NodeEditorWidget(self)
@@ -59,6 +59,14 @@ class NodeEditorWindow(QMainWindow):
         some(self.statusBar()).addPermanentWidget(self.status_mouse_pos)
         self.get_current_nodeeditor_widget().view.scene_pos_changed.connect(self.on_scene_pos_changed)
 
+    def create_actions(self) -> None:
+        self.act_file_save = self.create_act(
+            '&Save', self.on_file_save, 'Ctrl+S', "Save file",
+        )
+        self.act_file_save_as = self.create_act(
+            'Save &As...', self.on_file_save_as, 'Ctrl+Shift+S', "Save file as...",
+        )
+
     def create_menus(self) -> None:
         menu_bar = some(self.menuBar())
 
@@ -70,12 +78,8 @@ class NodeEditorWindow(QMainWindow):
         file_menu.addAction(self.create_act(
             '&Open', self.on_file_open, 'Ctrl+O', "Open file",
         ))
-        file_menu.addAction(self.create_act(
-            '&Save', self.on_file_save, 'Ctrl+S', "Save file",
-        ))
-        file_menu.addAction(self.create_act(
-            'Save &As...', self.on_file_save_as, 'Ctrl+Shift+S', "Save file as...",
-        ))
+        file_menu.addAction(self.act_file_save)
+        file_menu.addAction(self.act_file_save_as)
         file_menu.addSeparator()
         file_menu.addAction(self.create_act(
             'E&xit', self.close, 'Ctrl+Q', "Exit application",
@@ -150,30 +154,26 @@ class NodeEditorWindow(QMainWindow):
 
     def on_file_new(self):
         if self.maybe_save():
-            self.get_current_nodeeditor_widget().scene.clear()
-            self.filename = None
+            nodeeditor = self.get_current_nodeeditor_widget()
+            nodeeditor.scene.clear()
+            nodeeditor.filename = None
             self.set_title()
 
     def on_file_open(self):
         if self.maybe_save():
             fname, _ = QFileDialog.getOpenFileName(self, 'Open graph from file',
                                                    filter="JSON files (*.json)")
-            if fname == '':
+            if not (path := Path(fname)).is_file():
                 return
-            if Path(fname).is_file():
-                try:
-                    self.get_current_nodeeditor_widget().scene.load_from_file(fname)
-                except TypedloadException as e:
-                    QMessageBox.critical(self, "File load error", str(e))
-                    return
-                self.filename = fname
+            if self.get_current_nodeeditor_widget().load_file(path):
                 self.set_title()
 
     def on_file_save(self) -> bool:
-        if self.filename is None:
+        editor = self.get_current_nodeeditor_widget()
+        if editor.filename is None:
             return self.on_file_save_as()
-        self.get_current_nodeeditor_widget().scene.save_to_file(self.filename)
-        some(self.statusBar()).showMessage(f"Successfully saved {self.filename}")
+        editor.save_file()
+        some(self.statusBar()).showMessage(f"Successfully saved {editor.filename}")
         return True
 
     def on_file_save_as(self) -> bool:
@@ -181,8 +181,10 @@ class NodeEditorWindow(QMainWindow):
                                                filter="JSON files (*.json)")
         if fname == '':
             return False
-        self.filename = fname
-        return self.on_file_save()
+        editor = self.get_current_nodeeditor_widget()
+        editor.save_file(Path(fname))
+        some(self.statusBar()).showMessage(f"Successfully saved as {editor.filename}")
+        return True
 
     def on_edit_undo(self):
         self.get_current_nodeeditor_widget().scene.history.undo()
