@@ -1,8 +1,8 @@
 import argparse
-import configparser
 import logging
 import os
 import sys
+import tomllib
 from pathlib import Path
 
 from qtpy.QtWidgets import QApplication
@@ -22,8 +22,8 @@ if __name__ == '__main__':
     FORMAT = "[%(filename)s:%(lineno)s %(funcName)s] %(message)s"
     logging.basicConfig(format=FORMAT, level=LOG_LEVEL)
 
-    config = configparser.ConfigParser()
-    if config.read('conf/logging_config.toml'):
+    with Path("conf/logging_config.toml").open('rb') as f:
+        config = tomllib.load(f)
         for logger_name, level in config["levels"].items():
             logging.getLogger(logger_name).setLevel(level.upper())
 
