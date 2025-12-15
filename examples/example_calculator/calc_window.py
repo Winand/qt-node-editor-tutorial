@@ -73,19 +73,6 @@ class CalculatorWindow(NodeEditorWindow):
             self.write_settings()
             event.accept()
 
-    def update_menus(self, window: QMdiSubWindow | None = None) -> None:
-        "Disable some menu actions based on the presence of an active window."
-        has_active_doc = window is not None
-        self.act_file_save.setEnabled(has_active_doc)
-        self.act_file_save_as.setEnabled(has_active_doc)
-
-        self.act_wnd_close.setEnabled(has_active_doc)
-        self.act_wnd_close_all.setEnabled(has_active_doc)
-        self.act_wnd_tile.setEnabled(has_active_doc)
-        self.act_wnd_cascade.setEnabled(has_active_doc)
-        self.act_wnd_next.setEnabled(has_active_doc)
-        self.act_wnd_prev.setEnabled(has_active_doc)
-
     @override
     def create_actions(self) -> None:
         super().create_actions()
@@ -108,34 +95,23 @@ class CalculatorWindow(NodeEditorWindow):
             "Move the focus to the previous window")
 
     @override
+    def current_nodeeditor_widget(self) -> CalculatorSubWindow | None:
+        "Return the current NodeEditorWidget instance."
+        if active_subwindow := self.mdi_area.activeSubWindow():
+            return cast(CalculatorSubWindow, active_subwindow.widget())
+        return None
+
+
+    @override
+    def set_title(self, editor: CalculatorSubWindow | None = None) -> None:  # pyright: ignore[reportIncompatibleMethodOverride]
+        "Update tab title."
+        if editor:
+            editor.set_title()
+
+    @override
     def on_file_new(self) -> None:
         sub_wnd = self.create_mdi_child()
         sub_wnd.show()
-
-    @override
-    def on_file_save(self) -> bool:
-        if not (current_nodeeditor := self.active_mdi_child()):
-            return False
-        if not current_nodeeditor.filename:
-            return self.on_file_save_as()
-        current_nodeeditor.save_file()
-        current_nodeeditor.set_title()
-        self.statusBar().showMessage(
-            f"Successfully saved {current_nodeeditor.filename}", 5000)
-        return True
-
-    @override
-    def on_file_save_as(self) -> bool:
-        if not (current_nodeeditor := self.active_mdi_child()):
-            return False
-        fname, _ = QFileDialog.getSaveFileName(self, 'Save graph to file',
-                                               filter="JSON files (*.json)")
-        if fname == '':
-            return False
-        current_nodeeditor.save_file(Path(fname))
-        current_nodeeditor.set_title()
-        self.statusBar().showMessage(f"Successfully saved as {fname}", 5000)
-        return True
 
     @override
     def on_file_open(self) -> None:
@@ -173,6 +149,19 @@ class CalculatorWindow(NodeEditorWindow):
         self.menu_help.addAction(self.create_act(
             "&About", self.about, tooltip="Show the application's About box"))
 
+    def update_menus(self, window: QMdiSubWindow | None = None) -> None:
+        "Disable some menu actions based on the presence of an active window."
+        has_active_doc = window is not None
+        self.act_file_save.setEnabled(has_active_doc)
+        self.act_file_save_as.setEnabled(has_active_doc)
+
+        self.act_wnd_close.setEnabled(has_active_doc)
+        self.act_wnd_close_all.setEnabled(has_active_doc)
+        self.act_wnd_tile.setEnabled(has_active_doc)
+        self.act_wnd_cascade.setEnabled(has_active_doc)
+        self.act_wnd_next.setEnabled(has_active_doc)
+        self.act_wnd_prev.setEnabled(has_active_doc)
+
     def update_menu_window(self) -> None:
         "Create Window menu with a list of currently opened documents."
         self.menu_window.clear()
@@ -196,7 +185,7 @@ class CalculatorWindow(NodeEditorWindow):
 
             action = some(self.menu_window.addAction(text))
             action.setCheckable(True)
-            action.setChecked(child is self.active_mdi_child())
+            action.setChecked(child is self.current_nodeeditor_widget())
             action.triggered.connect(partial(self.set_active_subwindow, window=window))
 
     def create_toolbars(self) -> None:
@@ -223,12 +212,6 @@ class CalculatorWindow(NodeEditorWindow):
             nodeeditor = cast(CalculatorSubWindow, window.widget())
             if nodeeditor.filename == filename:
                 return window
-        return None
-
-    def active_mdi_child(self) -> CalculatorSubWindow | None:
-        "Return NodeEditorWidget."
-        if active_subwindow := self.mdi_area.activeSubWindow():
-            return cast(CalculatorSubWindow, active_subwindow.widget())
         return None
 
     def set_active_subwindow(self, window: QMdiSubWindow | None):

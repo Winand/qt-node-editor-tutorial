@@ -107,10 +107,11 @@ class NodeEditorWindow(QMainWindow):
             '&Delete', self.on_edit_delete, 'Del', "Delete selected items",
         ))
 
-    def set_title(self) -> None:
+    def set_title(self, editor: NodeEditorWidget | None = None) -> None:
         "Update window title."
+        editor = editor or self.get_current_nodeeditor_widget()
         title = "Node Editor - "
-        title += self.get_current_nodeeditor_widget().get_user_friendly_filename()
+        title += editor.get_user_friendly_filename()
 
         self.setWindowTitle(title)
 
@@ -130,6 +131,10 @@ class NodeEditorWindow(QMainWindow):
         except AttributeError as e:
             print(e)
             return False
+
+    def current_nodeeditor_widget(self) -> NodeEditorWidget | None:
+        "Return the current NodeEditorWidget instance or None."
+        return self.centralWidget()
 
     def get_current_nodeeditor_widget(self) -> NodeEditorWidget:
         "Return the current NodeEditorWidget instance."
@@ -169,23 +174,27 @@ class NodeEditorWindow(QMainWindow):
                 self.set_title()
 
     def on_file_save(self) -> bool:
-        editor = self.get_current_nodeeditor_widget()
+        if not (editor := self.current_nodeeditor_widget()):
+            return False  # support for MDI mode where may be no opened editors
         if editor.filename is None:
             return self.on_file_save_as()
         editor.save_file()
-        some(self.statusBar()).showMessage(f"Successfully saved {editor.filename}")
         self.set_title()
+        some(self.statusBar()).showMessage(f"Successfully saved {editor.filename}",
+                                           msecs=5000)
         return True
 
     def on_file_save_as(self) -> bool:
+        if not (editor := self.current_nodeeditor_widget()):
+            return False  # support for MDI mode where may be no opened editors
         fname, _ = QFileDialog.getSaveFileName(self, 'Save graph to file',
                                                filter="JSON files (*.json)")
         if fname == '':
             return False
-        editor = self.get_current_nodeeditor_widget()
         editor.save_file(Path(fname))
-        some(self.statusBar()).showMessage(f"Successfully saved as {editor.filename}")
-        self.set_title()
+        self.set_title(editor)
+        some(self.statusBar()).showMessage(f"Successfully saved as {editor.filename}",
+                                           msecs=5000)
         return True
 
     def on_edit_undo(self):
