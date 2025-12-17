@@ -63,6 +63,11 @@ class NodeEditorWidget(QWidget):
         name = self.filename.name if self.filename is not None else "New Graph"
         return name + ("*" if self.is_modified else "")
 
+    def new_file(self) -> None:
+        "Reset the scene and current file name."
+        self.scene.clear()
+        self.filename = None
+
     def load_file(self, filename: Path) -> bool:
         "Load a scene from a file."
         QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)

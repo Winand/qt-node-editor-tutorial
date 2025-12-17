@@ -159,9 +159,7 @@ class NodeEditorWindow(QMainWindow):
 
     def on_file_new(self):
         if self.maybe_save():
-            nodeeditor = self.get_current_nodeeditor_widget()
-            nodeeditor.scene.clear()
-            nodeeditor.filename = None
+            self.get_current_nodeeditor_widget().new_file()
             self.set_title()
 
     def on_file_open(self):

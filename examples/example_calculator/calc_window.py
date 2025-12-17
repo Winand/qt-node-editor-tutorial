@@ -111,6 +111,7 @@ class CalculatorWindow(NodeEditorWindow):
     @override
     def on_file_new(self) -> None:
         sub_wnd = self.create_mdi_child()
+        cast(CalculatorSubWindow, sub_wnd.widget()).new_file()
         sub_wnd.show()
 
     @override
