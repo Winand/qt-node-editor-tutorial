@@ -182,6 +182,7 @@ class QDMGraphicsView(QGraphicsView):
         # see also 24: https://youtu.be/FPP4RcGeQpU?t=1011
         # if self.mode != Mode.EDGE_DRAG:  # clicked on a pin to start edge dragging
         if self.rubber_band_dragging_rectangle:
+            # FIXME: works for deselection but not for selection
             self._scene.history.store_history("Selection changed")
             self.rubber_band_dragging_rectangle = False
 

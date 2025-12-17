@@ -29,5 +29,6 @@ if __name__ == '__main__':
 
     app = QApplication(sys.argv)
     wnd = NodeEditorWindow()
+    wnd.centralWidget().add_nodes()  # example nodes
     load_stylesheet(Path("qss/nodestyle.qss"))
     sys.exit(app.exec())

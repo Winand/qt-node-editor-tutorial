@@ -22,19 +22,34 @@ class HistoryStamp(TypedDict):
 class SceneHistory:
     def __init__(self, scene: "Scene") -> None:
         self.scene = scene
+        self.clear()
+        self.history_limit = 32
+
+    def clear(self) -> None:
+        "Initialize history stack."
         self.history_stack: list[HistoryStamp] = []
         self.history_current_step = -1
-        self.history_limit = 32
+
+    def store_initial_history_stamp(self) -> None:
+        self.store_history("Initial history stamp")
+
+    def can_undo(self) -> bool:
+        "Undo action is available."
+        return self.history_current_step > 0
+
+    def can_redo(self) -> bool:
+        "Redo action is available."
+        return self.history_current_step + 1 < len(self.history_stack)
 
     def undo(self):
         log.debug("UNDO")
-        if self.history_current_step > 0:
+        if self.can_undo():
             self.history_current_step -= 1
             self.restore_history()
 
     def redo(self):
         log.debug("REDO")
-        if self.history_current_step + 1 < len(self.history_stack):
+        if self.can_redo():
             self.history_current_step += 1
             self.restore_history()
 

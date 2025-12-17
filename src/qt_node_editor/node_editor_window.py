@@ -67,6 +67,25 @@ class NodeEditorWindow(QMainWindow):
             'Save &As...', self.on_file_save_as, 'Ctrl+Shift+S', "Save file as...",
         )
 
+        self.act_undo = self.create_act(
+            '&Undo', self.on_edit_undo, 'Ctrl+Z', "Undo last operation",
+        )
+        self.act_redo = self.create_act(
+            '&Redo', self.on_edit_redo, 'Ctrl+Y', "Redo last operation",
+        )
+        self.act_cut = self.create_act(
+            'Cu&t', self.on_edit_cut, 'Ctrl+X', "Cut to clipboard",
+        )
+        self.act_copy = self.create_act(
+            '&Copy', self.on_edit_copy, 'Ctrl+C', "Copy to clipboard",
+        )
+        self.act_paste = self.create_act(
+            '&Paste', self.on_edit_paste, 'Ctrl+V', "Paste from clipboard",
+        )
+        self.act_delete = self.create_act(
+            '&Delete', self.on_edit_delete, 'Del', "Delete selected items",
+        )
+
     def create_menus(self) -> None:
         menu_bar = some(self.menuBar())
 
@@ -85,27 +104,15 @@ class NodeEditorWindow(QMainWindow):
             'E&xit', self.close, 'Ctrl+Q', "Exit application",
         ))
 
-        edit_menu = some(menu_bar.addMenu("&Edit"))
-        edit_menu.addAction(self.create_act(
-            '&Undo', self.on_edit_undo, 'Ctrl+Z', "Undo last operation",
-        ))
-        edit_menu.addAction(self.create_act(
-            '&Redo', self.on_edit_redo, 'Ctrl+Y', "Redo last operation",
-        ))
+        self.menu_edit = edit_menu = some(menu_bar.addMenu("&Edit"))
+        edit_menu.addAction(self.act_undo)
+        edit_menu.addAction(self.act_redo)
         edit_menu.addSeparator()
-        edit_menu.addAction(self.create_act(
-            'Cu&t', self.on_edit_cut, 'Ctrl+X', "Cut to clipboard",
-        ))
-        edit_menu.addAction(self.create_act(
-            '&Copy', self.on_edit_copy, 'Ctrl+C', "Copy to clipboard",
-        ))
-        edit_menu.addAction(self.create_act(
-            '&Paste', self.on_edit_paste, 'Ctrl+V', "Paste from clipboard",
-        ))
+        edit_menu.addAction(self.act_cut)
+        edit_menu.addAction(self.act_copy)
+        edit_menu.addAction(self.act_paste)
         edit_menu.addSeparator()
-        edit_menu.addAction(self.create_act(
-            '&Delete', self.on_edit_delete, 'Del', "Delete selected items",
-        ))
+        edit_menu.addAction(self.act_delete)
 
     def set_title(self, editor: NodeEditorWidget | None = None) -> None:
         "Update window title."
@@ -196,26 +203,33 @@ class NodeEditorWindow(QMainWindow):
         return True
 
     def on_edit_undo(self):
-        self.get_current_nodeeditor_widget().scene.history.undo()
+        if editor := self.current_nodeeditor_widget():
+            editor.scene.history.undo()
 
     def on_edit_redo(self):
-        self.get_current_nodeeditor_widget().scene.history.redo()
+        if editor := self.current_nodeeditor_widget():
+            editor.scene.history.redo()
 
     def on_edit_delete(self):
-        view = self.get_current_nodeeditor_widget().scene.gr_scene.views()[0] @As(QDMGraphicsView)
-        view.delete_selected()
+        if editor := self.current_nodeeditor_widget():
+            view = editor.scene.gr_scene.views()[0] @As(QDMGraphicsView)
+            view.delete_selected()
 
     def on_edit_cut(self):
-        data = self.get_current_nodeeditor_widget().scene.clipboard.serialize_selected(delete=True)
-        str_data = json.dumps(data, indent=4)
-        some(self.app.clipboard()).setText(str_data)
+        if editor := self.current_nodeeditor_widget():
+            data = editor.scene.clipboard.serialize_selected(delete=True)
+            str_data = json.dumps(data, indent=4)
+            some(self.app.clipboard()).setText(str_data)
 
     def on_edit_copy(self):
-        data = self.get_current_nodeeditor_widget().scene.clipboard.serialize_selected(delete=False)
-        str_data = json.dumps(data, indent=4)
-        some(self.app.clipboard()).setText(str_data)
+        if editor := self.current_nodeeditor_widget():
+            data = editor.scene.clipboard.serialize_selected(delete=False)
+            str_data = json.dumps(data, indent=4)
+            some(self.app.clipboard()).setText(str_data)
 
     def on_edit_paste(self):
+        if not (editor := self.current_nodeeditor_widget()):
+            return
         raw_data = some(self.app.clipboard()).text()
 
         try:
@@ -229,7 +243,7 @@ class NodeEditorWindow(QMainWindow):
         except (ValueError, TypeError) as e:
             log.error("JSON is not a valid scene: %s", e)
             return
-        self.get_current_nodeeditor_widget().scene.clipboard.deserialize_from_clipboard(data)
+        editor.scene.clipboard.deserialize_from_clipboard(data)
 
     def read_settings(self):
         settings = QSettings(self.name_company, self.name_product)

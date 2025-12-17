@@ -42,11 +42,6 @@ class NodeEditorWidget(QWidget):
 
         # create graphics scene
         self.scene = Scene()
-        # self.gr_scene = self.scene.gr_scene
-
-        self.add_nodes()
-
-        self.scene.history.store_history("Initial", modified=True)  # FIXME: @Winand
 
         # create graphics view
         self.view = QDMGraphicsView(self.scene, self)
@@ -59,6 +54,22 @@ class NodeEditorWidget(QWidget):
         "Return True if the scene has been modified."
         return self.scene.has_been_modified
 
+    def get_selected_items(self) -> list[QGraphicsItem]:
+        "Get a list of selected elements on the editor scene."
+        return self.scene.get_selected_items()
+
+    def has_selected_items(self) -> bool:
+        "Check if there are selected elements on the scene."
+        return len(self.get_selected_items()) > 0
+
+    def can_undo(self) -> bool:
+        "Check if undo action is available on the scene."
+        return self.scene.history.can_undo()
+
+    def can_redo(self) -> bool:
+        "Check if redo action is available on the scene."
+        return self.scene.history.can_redo()
+
     def get_user_friendly_filename(self) -> str:
         name = self.filename.name if self.filename is not None else "New Graph"
         return name + ("*" if self.is_modified else "")
@@ -67,6 +78,8 @@ class NodeEditorWidget(QWidget):
         "Reset the scene and current file name."
         self.scene.clear()
         self.filename = None
+        self.scene.history.clear()
+        self.scene.history.store_initial_history_stamp()
 
     def load_file(self, filename: Path) -> bool:
         "Load a scene from a file."
@@ -79,7 +92,8 @@ class NodeEditorWidget(QWidget):
             QMessageBox.warning(self, f"Error loading {filename.name}", cause)
             return False
         self.filename = filename
-        # TODO: clear history !!
+        self.scene.history.clear()
+        self.scene.history.store_initial_history_stamp()
         QApplication.restoreOverrideCursor()
         return True
 
@@ -93,7 +107,8 @@ class NodeEditorWidget(QWidget):
         QApplication.restoreOverrideCursor()
         return True
 
-    def add_nodes(self):
+    def add_nodes(self) -> None:
+        "Add some example nodes to the scene."
         node1 = Node(self.scene, "My Awesome Node 1",
                     inputs=[0, 0, 0], outputs=[1])
         node2 = Node(self.scene, "My Awesome Node 2",
@@ -108,6 +123,8 @@ class NodeEditorWidget(QWidget):
                      shape=EdgeType.BEZIER)
         edge2 = Edge(self.scene, node2.outputs[0], node3.inputs[0],
                      shape=EdgeType.BEZIER)
+
+        self.scene.history.store_initial_history_stamp()
 
     def add_debug_content(self):
         green_brush = QBrush(Qt.GlobalColor.green)  # see also QtGui.QColorConstants

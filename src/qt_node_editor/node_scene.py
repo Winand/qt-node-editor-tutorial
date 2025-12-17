@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import NotRequired, TypedDict
 
 import typedload
+from qtpy.QtWidgets import QGraphicsItem
 from typedload.exceptions import TypedloadException
 
 from qt_node_editor.node_edge import Edge, EdgeSerialize
@@ -44,6 +45,10 @@ class Scene(Serializable):
         self.init_ui()
         self.history = SceneHistory(self)
         self.clipboard = SceneClipboard(self)
+
+    def get_selected_items(self) -> list[QGraphicsItem]:
+        "Get a list of selected elements on the scene."
+        return self.gr_scene.selectedItems()
 
     @property
     def has_been_modified(self) -> bool:

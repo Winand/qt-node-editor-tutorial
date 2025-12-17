@@ -140,11 +140,12 @@ class CalculatorWindow(NodeEditorWindow):
     def create_menus(self) -> None:
         super().create_menus()
 
+        # FIXME: edit actions become enable/disabled only when menu is shown
+        self.menu_edit.aboutToShow.connect(self.update_menu_edit)
+
         self.menu_window = some(self.menuBar().addMenu("&Window"))
         self.update_menu_window()
         self.menu_window.aboutToShow.connect(self.update_menu_window)
-
-        self.menuBar().addSeparator()
 
         self.menu_help = some(self.menuBar().addMenu("&Help"))
         self.menu_help.addAction(self.create_act(
@@ -162,6 +163,20 @@ class CalculatorWindow(NodeEditorWindow):
         self.act_wnd_cascade.setEnabled(has_active_doc)
         self.act_wnd_next.setEnabled(has_active_doc)
         self.act_wnd_prev.setEnabled(has_active_doc)
+
+        self.update_menu_edit()
+
+    def update_menu_edit(self) -> None:
+        "Create Edit menu with a list of currently opened documents."
+        active = self.current_nodeeditor_widget()
+        has_active_doc = active is not None
+        self.act_paste.setEnabled(has_active_doc)
+        self.act_cut.setEnabled(has_active_doc and active.has_selected_items())
+        self.act_copy.setEnabled(has_active_doc and active.has_selected_items())
+        self.act_delete.setEnabled(has_active_doc and active.has_selected_items())
+
+        self.act_undo.setEnabled(has_active_doc and active.can_undo())
+        self.act_redo.setEnabled(has_active_doc and active.can_redo())
 
     def update_menu_window(self) -> None:
         "Create Window menu with a list of currently opened documents."
