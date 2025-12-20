@@ -1,9 +1,10 @@
 import math
+
 # https://adamj.eu/tech/2021/05/13/python-type-hints-how-to-fix-circular-imports/
 from typing import TYPE_CHECKING
 
 from qtpy import API_NAME
-from qtpy.QtCore import QLine, QObject, QRectF
+from qtpy.QtCore import QLine, QObject, QRectF, Signal
 from qtpy.QtGui import QColor, QPainter, QPen
 from qtpy.QtWidgets import QGraphicsScene
 
@@ -12,6 +13,9 @@ if TYPE_CHECKING:
 
 
 class QDMGraphicsScene(QGraphicsScene):
+    item_selected = Signal()
+    items_deselected = Signal()
+
     def __init__(self, scene: "Scene", parent: QObject | None = None):
         super().__init__(parent)
 

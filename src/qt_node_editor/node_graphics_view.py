@@ -183,8 +183,8 @@ class QDMGraphicsView(QGraphicsView):
         # if self.mode != Mode.EDGE_DRAG:  # clicked on a pin to start edge dragging
         if self.rubber_band_dragging_rectangle:
             # FIXME: works for deselection but not for selection
-            self._scene.history.store_history("Selection changed")
             self.rubber_band_dragging_rectangle = False
+            self._scene.history.store_history("Selection changed")
 
     def middle_mouse_button_press(self, event: QMouseEvent):
         super().mousePressEvent(event)

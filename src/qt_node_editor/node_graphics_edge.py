@@ -1,10 +1,15 @@
 import math
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, override
 
-from qtpy.QtCore import QPointF, QRectF, Qt
-from qtpy.QtGui import QColor, QPainter, QPainterPath, QPen, QPainterPathStroker
-from qtpy.QtWidgets import (QGraphicsItem, QGraphicsPathItem,
-                            QStyleOptionGraphicsItem, QWidget)
+from qtpy.QtCore import QPointF, Qt
+from qtpy.QtGui import QColor, QPainter, QPainterPath, QPainterPathStroker, QPen
+from qtpy.QtWidgets import (
+    QGraphicsItem,
+    QGraphicsPathItem,
+    QGraphicsSceneMouseEvent,
+    QStyleOptionGraphicsItem,
+    QWidget,
+)
 
 from qt_node_editor.node_socket import Pos
 
@@ -20,6 +25,20 @@ class QDMGraphicsEdge(QGraphicsPathItem):
     def __init__(self, edge: "Edge", parent=None):
         super().__init__(parent)
         self.edge = edge
+        # init flags
+        self._last_selected_state = False
+        # init variables
+        self.pos_source = [0, 0]
+        self.pos_destination = [100, 100]
+
+        self.init_assets()
+        self.init_ui()
+
+    def init_ui(self) -> None:
+        self.setFlag(GraphicsItemFlag.ItemIsSelectable)
+        self.setZValue(-1)  # place under nodes
+
+    def init_assets(self) -> None:
         self._color = QColor("#001000")
         self._color_selected = QColor("#00ff00")
         self._pen = QPen(self._color)
@@ -30,12 +49,16 @@ class QDMGraphicsEdge(QGraphicsPathItem):
         self._pen_selected.setWidthF(2.0)
         self._pen_dragging.setWidthF(2.0)
 
-        self.setFlag(GraphicsItemFlag.ItemIsSelectable)
+    def on_selected(self) -> None:
+        self.edge.scene.gr_scene.item_selected.emit()
 
-        self.setZValue(-1)  # place under nodes
-
-        self.pos_source = [0, 0]
-        self.pos_destination = [100, 100]
+    @override
+    def mouseReleaseEvent(self, event: QGraphicsSceneMouseEvent | None) -> None:
+        super().mouseReleaseEvent(event)
+        if self._last_selected_state != self.isSelected():
+            self.edge.scene.reset_last_selected_states()
+            self._last_selected_state = self.isSelected()
+            self.on_selected()
 
     def set_source(self, x, y):
         self.pos_source = [x, y]

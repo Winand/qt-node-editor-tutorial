@@ -101,7 +101,7 @@ class Node(Serializable):
                 edge.remove()
         log.debug(" - remove gr_node")
         self.scene.gr_scene.removeItem(self.gr_node)
-        self.gr_node = None
+        self.gr_node = None  # TODO: do not set to None as it confuses linters
         log.debug(" - remove node from the scene")
         self.scene.remove_node(self)
         log.debug(" - everything was done.")

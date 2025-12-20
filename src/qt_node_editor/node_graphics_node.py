@@ -2,13 +2,18 @@
 Representation of a node in a graphics scene.
 """
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, override
 
 from qtpy.QtCore import QRectF, Qt
 from qtpy.QtGui import QBrush, QColor, QFont, QPainter, QPainterPath, QPen
-from qtpy.QtWidgets import (QGraphicsItem, QGraphicsProxyWidget, QGraphicsSceneMouseEvent,
-                            QGraphicsTextItem, QStyleOptionGraphicsItem,
-                            QWidget)
+from qtpy.QtWidgets import (
+    QGraphicsItem,
+    QGraphicsProxyWidget,
+    QGraphicsSceneMouseEvent,
+    QGraphicsTextItem,
+    QStyleOptionGraphicsItem,
+    QWidget,
+)
 
 if TYPE_CHECKING:
     from qt_node_editor.node_node import Node
@@ -23,12 +28,32 @@ class QDMGraphicsNode(QGraphicsItem):
         self.node = node
         self.content = node.content
 
+        # init flags
+        self._was_moved = False
+        self._last_selected_state = False
+
+        self.init_sizes()
+        self.init_assets()
+        self.init_ui()
+
+    def init_ui(self):
+        self.setFlag(GraphicsItemFlag.ItemIsSelectable)
+        self.setFlag(GraphicsItemFlag.ItemIsMovable)
+
+        self.init_title()  # TODO: pass _title_color, _title_font, _padding in args
+        self.title = self.node.title
+
+        self.init_sockets()
+        self.init_content()
+
+    def init_sizes(self) -> None:
         self.width = 180
         self.height = 240
         self.edge_size = 10.0
         self.title_height = 24.0
         self._padding = 4.0  # title x-padding
 
+    def init_assets(self) -> None:
         self._pen_default = QPen(QColor("#7F000000"))
         self._pen_selected = QPen(QColor("#FFFFA637"))
         self._brush_title = QBrush(QColor("#FF313131"))
@@ -37,13 +62,9 @@ class QDMGraphicsNode(QGraphicsItem):
         self._title_color = Qt.GlobalColor.white
         # https://rigaux.org/font-family-compatibility-between-linux-.html
         self._title_font = QFont("Helvetica", 10)
-        self.init_title()
-        self.title = self.node.title
 
-        self.init_sockets()
-        self.init_content()
-        self.init_ui()
-        self.was_moved = False
+    def on_selected(self) -> None:
+        self.node.scene.gr_scene.item_selected.emit()
 
     def mouseMoveEvent(self, event: QGraphicsSceneMouseEvent | None) -> None:
         super().mouseMoveEvent(event)
@@ -51,13 +72,18 @@ class QDMGraphicsNode(QGraphicsItem):
         for node in self.node.scene.nodes:
             if node.gr_node.isSelected():
                 node.update_connected_edges()
-        self.was_moved = True
-    
+        self._was_moved = True
+
+    @override
     def mouseReleaseEvent(self, event: QGraphicsSceneMouseEvent | None) -> None:
         super().mouseReleaseEvent(event)
-        if self.was_moved:
-            self.was_moved = False
+        if self._was_moved:
+            self._was_moved = False
             self.node.scene.history.store_history("Node moved", modified=True)
+        if self._last_selected_state != self.isSelected():
+            self.node.scene.reset_last_selected_states()
+            self._last_selected_state = self.isSelected()
+            self.on_selected()
 
     @property
     def title(self):
@@ -75,10 +101,6 @@ class QDMGraphicsNode(QGraphicsItem):
         """
         return QRectF(0, 0, self.width, self.height) \
             .normalized()  # swap values if width/height is negative (needed?)
-
-    def init_ui(self):
-        self.setFlag(GraphicsItemFlag.ItemIsSelectable)
-        self.setFlag(GraphicsItemFlag.ItemIsMovable)
 
     def init_title(self):
         """

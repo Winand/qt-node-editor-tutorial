@@ -41,10 +41,25 @@ class Scene(Serializable):
 
         self._has_been_modified = False
         self._has_been_modified_listeners: list[Callable[[], None]] = []
+        self._item_selected_listeners: list[Callable[[], None]] = []
+        self._items_deselected_listeners: list[Callable[[], None]] = []
 
         self.init_ui()
         self.history = SceneHistory(self)
         self.clipboard = SceneClipboard(self)
+
+        self.gr_scene.item_selected.connect(self.on_item_selected)
+        self.gr_scene.items_deselected.connect(self.on_item_deselected)
+
+    def init_ui(self):
+        self.gr_scene = QDMGraphicsScene(self)
+        self.gr_scene.set_rect(self.scene_width, self.scene_height)
+
+    def on_item_selected(self) -> None:
+        print("SCENE:: ~on_item_selected")
+
+    def on_item_deselected(self) -> None:
+        print("SCENE:: ~on_item_deselected")
 
     def get_selected_items(self) -> list[QGraphicsItem]:
         "Get a list of selected elements on the scene."
@@ -72,9 +87,30 @@ class Scene(Serializable):
         """
         self._has_been_modified_listeners.append(callback)
 
-    def init_ui(self):
-        self.gr_scene = QDMGraphicsScene(self)
-        self.gr_scene.set_rect(self.scene_width, self.scene_height)
+    def add_item_selected_listener(self, callback: Callable[[], None]) -> None:
+        """
+        Add a new callback to be called when an item is selected on the scene.
+
+        :param callback: A callback function
+        :type callback: Callable[[], None]
+        """
+        self._item_selected_listeners.append(callback)
+
+    def add_items_deselected_listener(self, callback: Callable[[], None]) -> None:
+        """
+        Add a new callback to be called when items are deselected on the scene.
+
+        :param callback: A callback function
+        :type callback: Callable[[], None]
+        """
+        self._items_deselected_listeners.append(callback)
+
+    # custom flag to detect node or edge has been selected....
+    def reset_last_selected_states(self) -> None:
+        for node in self.nodes:
+            node.gr_node._last_selected_state = False
+        for edge in self.edges:
+            edge.gr_edge._last_selected_state = False
 
     def add_node(self, node: "Node"):
         self.nodes.append(node)
