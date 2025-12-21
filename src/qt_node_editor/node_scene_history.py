@@ -56,7 +56,8 @@ class SceneHistory:
     def restore_history(self):
         log.debug("Restoring history .... current_step @%d (%d)",
                   self.history_current_step, len(self.history_stack))
-        self.restore_history_stamp(self.history_stack[self.history_current_step])
+        with self.scene.selection_handling_disabled():
+            self.restore_history_stamp(self.history_stack[self.history_current_step])
 
     def store_history(self, desc: str, *, modified: bool = False):
         self.scene.has_been_modified = modified

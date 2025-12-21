@@ -30,7 +30,7 @@ class QDMGraphicsNode(QGraphicsItem):
 
         # init flags
         self._was_moved = False
-        self._last_selected_state = False
+        # self._last_selected_state = False
 
         self.init_sizes()
         self.init_assets()
@@ -63,8 +63,8 @@ class QDMGraphicsNode(QGraphicsItem):
         # https://rigaux.org/font-family-compatibility-between-linux-.html
         self._title_font = QFont("Helvetica", 10)
 
-    def on_selected(self) -> None:
-        self.node.scene.gr_scene.item_selected.emit()
+    # def on_selected(self) -> None:
+    #     self.node.scene.gr_scene.item_selected.emit()
 
     def mouseMoveEvent(self, event: QGraphicsSceneMouseEvent | None) -> None:
         super().mouseMoveEvent(event)
@@ -80,10 +80,17 @@ class QDMGraphicsNode(QGraphicsItem):
         if self._was_moved:
             self._was_moved = False
             self.node.scene.history.store_history("Node moved", modified=True)
-        if self._last_selected_state != self.isSelected():
-            self.node.scene.reset_last_selected_states()
-            self._last_selected_state = self.isSelected()
-            self.on_selected()
+        #     self.node.scene.reset_last_selected_states()
+        #     self._last_selected_state = True
+        #     # store the last selected state, because moving does also selct the nodes
+        #     self.node.scene.last_selected_items = self.node.scene.get_selected_items()
+        # elif (
+        #     self._last_selected_state != self.isSelected() or
+        #     self.node.scene.last_selected_items != self.node.scene.get_selected_items
+        # ):
+        #     self.node.scene.reset_last_selected_states()
+        #     self._last_selected_state = self.isSelected()
+        #     self.on_selected()
 
     @property
     def title(self):

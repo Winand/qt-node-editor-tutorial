@@ -1,12 +1,11 @@
 import math
-from typing import TYPE_CHECKING, override
+from typing import TYPE_CHECKING
 
 from qtpy.QtCore import QPointF, Qt
 from qtpy.QtGui import QColor, QPainter, QPainterPath, QPainterPathStroker, QPen
 from qtpy.QtWidgets import (
     QGraphicsItem,
     QGraphicsPathItem,
-    QGraphicsSceneMouseEvent,
     QStyleOptionGraphicsItem,
     QWidget,
 )
@@ -26,7 +25,7 @@ class QDMGraphicsEdge(QGraphicsPathItem):
         super().__init__(parent)
         self.edge = edge
         # init flags
-        self._last_selected_state = False
+        # self._last_selected_state = False
         # init variables
         self.pos_source = [0, 0]
         self.pos_destination = [100, 100]
@@ -49,16 +48,16 @@ class QDMGraphicsEdge(QGraphicsPathItem):
         self._pen_selected.setWidthF(2.0)
         self._pen_dragging.setWidthF(2.0)
 
-    def on_selected(self) -> None:
-        self.edge.scene.gr_scene.item_selected.emit()
+    # def on_selected(self) -> None:
+    #     self.edge.scene.gr_scene.item_selected.emit()
 
-    @override
-    def mouseReleaseEvent(self, event: QGraphicsSceneMouseEvent | None) -> None:
-        super().mouseReleaseEvent(event)
-        if self._last_selected_state != self.isSelected():
-            self.edge.scene.reset_last_selected_states()
-            self._last_selected_state = self.isSelected()
-            self.on_selected()
+    # @override
+    # def mouseReleaseEvent(self, event: QGraphicsSceneMouseEvent | None) -> None:
+    #     super().mouseReleaseEvent(event)
+    #     if self._last_selected_state != self.isSelected():
+    #         self.edge.scene.reset_last_selected_states()
+    #         self._last_selected_state = self.isSelected()
+    #         self.on_selected()
 
     def set_source(self, x, y):
         self.pos_source = [x, y]

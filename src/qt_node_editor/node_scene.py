@@ -3,9 +3,10 @@ Scene
 """
 import json
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Generator
+from contextlib import contextmanager
 from pathlib import Path
-from typing import NotRequired, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 import typedload
 from qtpy.QtWidgets import QGraphicsItem
@@ -40,6 +41,9 @@ class Scene(Serializable):
         self.scene_height = 64000
 
         self._has_been_modified = False
+        self.last_selected_items = []
+
+        # initialize all listeners
         self._has_been_modified_listeners: list[Callable[[], None]] = []
         self._item_selected_listeners: list[Callable[[], None]] = []
         self._items_deselected_listeners: list[Callable[[], None]] = []
@@ -48,18 +52,61 @@ class Scene(Serializable):
         self.history = SceneHistory(self)
         self.clipboard = SceneClipboard(self)
 
-        self.gr_scene.item_selected.connect(self.on_item_selected)
-        self.gr_scene.items_deselected.connect(self.on_item_deselected)
+        # self.gr_scene.item_selected.connect(self.on_item_selected)
+        # self.gr_scene.items_deselected.connect(self.on_items_deselected)
+        self.gr_scene.selectionChanged.connect(self.on_selection_changed)
+        self._selection_handling = True
 
     def init_ui(self):
         self.gr_scene = QDMGraphicsScene(self)
         self.gr_scene.set_rect(self.scene_width, self.scene_height)
 
-    def on_item_selected(self) -> None:
-        print("SCENE:: ~on_item_selected")
+    # def on_item_selected(self) -> None:
+    #     print("SCENE:: ~on_item_selected")
+    #     current_selected_items = self.get_selected_items()
+    #     if current_selected_items != self.last_selected_items:
+    #         print(current_selected_items)
+    #         self.last_selected_items = current_selected_items
+    #         self.history.store_history("Selection Changed")
+    #         for callback in self._item_selected_listeners:
+    #             callback()
 
-    def on_item_deselected(self) -> None:
-        print("SCENE:: ~on_item_deselected")
+    # def on_items_deselected(self) -> None:
+    #     print("SCENE:: ~on_item_deselected")
+    #     self.reset_last_selected_states()
+    #     print(self.last_selected_items)
+    #     if self.last_selected_items:
+    #         self.last_selected_items = []
+    #         self.history.store_history("Deselected everything")
+    #         for callback in self._items_deselected_listeners:
+    #             callback()
+
+    def on_selection_changed(self) -> None:
+        "Handle selection changes on the scene."
+        if not self._selection_handling:
+            return
+        if current_selected_items := self.get_selected_items():
+            if current_selected_items != self.last_selected_items:
+                self.last_selected_items = current_selected_items
+                self.history.store_history("Selection Changed")
+                for callback in self._item_selected_listeners:
+                    callback()
+        elif self.last_selected_items:
+            self.last_selected_items = []
+            self.history.store_history("Deselected everything")
+            for callback in self._items_deselected_listeners:
+                callback()
+
+    def set_selection_handling(self, *, enable: bool) -> None:
+        "Enable or disable handling of selection changes on the scene."
+        self._selection_handling = enable
+
+    @contextmanager
+    def selection_handling_disabled(self) -> Generator[None, Any, Any]:
+        "Temporary disable handling of selection changes on the scene."
+        self._selection_handling = False
+        yield
+        self._selection_handling = True
 
     def get_selected_items(self) -> list[QGraphicsItem]:
         "Get a list of selected elements on the scene."
@@ -105,12 +152,12 @@ class Scene(Serializable):
         """
         self._items_deselected_listeners.append(callback)
 
-    # custom flag to detect node or edge has been selected....
-    def reset_last_selected_states(self) -> None:
-        for node in self.nodes:
-            node.gr_node._last_selected_state = False
-        for edge in self.edges:
-            edge.gr_edge._last_selected_state = False
+    # # custom flag to detect node or edge has been selected....
+    # def reset_last_selected_states(self) -> None:
+    #     for node in self.nodes:
+    #         node.gr_node._last_selected_state = False
+    #     for edge in self.edges:
+    #         edge.gr_edge._last_selected_state = False
 
     def add_node(self, node: "Node"):
         self.nodes.append(node)

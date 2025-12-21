@@ -3,7 +3,7 @@ from enum import Enum, auto
 
 from qtpy.QtCore import QEvent, QPointF, Qt, Signal
 from qtpy.QtGui import QKeyEvent, QMouseEvent, QPainter, QWheelEvent
-from qtpy.QtWidgets import QGraphicsItem, QGraphicsView, QWidget, QApplication
+from qtpy.QtWidgets import QApplication, QGraphicsItem, QGraphicsView, QWidget
 
 from qt_node_editor.node_edge import Edge, EdgeType
 from qt_node_editor.node_graphics_cutline import QDMCutLine
@@ -152,7 +152,10 @@ class QDMGraphicsView(QGraphicsView):
                 self.cutline.line_points = []  # reset old line_points
                 self.cutline.show()
                 return
+            # `rubberBandChanged` signal can be used but some flag is still needed
+            # to distinguish rubber band release from click in mouse release event
             self.rubber_band_dragging_rectangle = True
+            self._scene.set_selection_handling(enable=False)
 
         super().mousePressEvent(event)  # pass to upper level
 
@@ -182,9 +185,16 @@ class QDMGraphicsView(QGraphicsView):
         # see also 24: https://youtu.be/FPP4RcGeQpU?t=1011
         # if self.mode != Mode.EDGE_DRAG:  # clicked on a pin to start edge dragging
         if self.rubber_band_dragging_rectangle:
-            # FIXME: works for deselection but not for selection
             self.rubber_band_dragging_rectangle = False
-            self._scene.history.store_history("Selection changed")
+            self._scene.set_selection_handling(enable=True)
+            self._scene.gr_scene.selectionChanged.emit()
+            # current_selected_items = self._scene.gr_scene.selectedItems()
+            # if current_selected_items != self._scene.last_selected_items:
+            #     if current_selected_items:
+            #         self._scene.gr_scene.item_selected.emit()
+            #     else:
+            #         self._scene.gr_scene.items_deselected.emit()
+            # return
 
     def middle_mouse_button_press(self, event: QMouseEvent):
         super().mousePressEvent(event)
