@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING, TypedDict
 
 from qt_node_editor.node_graphics_edge import QDMGraphicsEdge
 from qt_node_editor.node_graphics_node import QDMGraphicsNode
+from qt_node_editor.node_serializable import SerializableID
 
 if TYPE_CHECKING:
     from qt_node_editor.node_scene import Scene, SceneSerialize
@@ -10,8 +11,9 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 class HistorySel(TypedDict):
-    nodes: list[QDMGraphicsNode]
-    edges: list[QDMGraphicsEdge]
+    "Selected nodes and edges."
+    nodes: list[SerializableID]
+    edges: list[SerializableID]
 
 class HistoryStamp(TypedDict):
     desc: str

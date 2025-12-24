@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, TypedDict
 
 from qt_node_editor.node_graphics_edge import (QDMGraphicsEdgeBezier,
                                                QDMGraphicsEdgeDirect)
-from qt_node_editor.node_serializable import Serializable
+from qt_node_editor.node_serializable import Serializable, SerializableID
 from qt_node_editor.node_socket import Socket
 
 if TYPE_CHECKING:
@@ -20,7 +20,7 @@ class EdgeType(int, Enum):
     BEZIER = auto()
 
 class EdgeSerialize(TypedDict):
-    id: int
+    id: SerializableID
     edge_type: EdgeType
     start: int | None
     end: int | None

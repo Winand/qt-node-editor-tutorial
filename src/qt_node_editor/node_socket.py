@@ -6,7 +6,7 @@ from enum import Enum, auto
 from typing import TYPE_CHECKING, NotRequired, TypedDict
 
 from qt_node_editor.node_graphics_socket import QDMGraphicsSocket
-from qt_node_editor.node_serializable import Serializable
+from qt_node_editor.node_serializable import Serializable, SerializableID
 
 if TYPE_CHECKING:
     from qt_node_editor.node_edge import Edge
@@ -21,7 +21,7 @@ class Pos(int, Enum):
     RIGHT_BOTTOM = auto()
 
 class SocketSerialize(TypedDict):
-    id: int
+    id: SerializableID
     index: int
     multi_edges: NotRequired[bool]
     position: Pos

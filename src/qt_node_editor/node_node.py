@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, TypedDict
 from qt_node_editor.node_content_widget import (ContentSerialize,
                                                 QDMContentWidget)
 from qt_node_editor.node_graphics_node import QDMGraphicsNode
-from qt_node_editor.node_serializable import Serializable
+from qt_node_editor.node_serializable import Serializable, SerializableID
 from qt_node_editor.node_socket import Pos, Socket, SocketSerialize
 
 if TYPE_CHECKING:
@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 class NodeSerialize(TypedDict):
-    id: int
+    id: SerializableID
     title: str
     pos_x: float
     pos_y: float

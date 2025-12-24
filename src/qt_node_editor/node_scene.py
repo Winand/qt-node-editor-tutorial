@@ -17,7 +17,7 @@ from qt_node_editor.node_graphics_scene import QDMGraphicsScene
 from qt_node_editor.node_node import Node, NodeSerialize
 from qt_node_editor.node_scene_clipboard import SceneClipboard
 from qt_node_editor.node_scene_history import SceneHistory
-from qt_node_editor.node_serializable import Serializable
+from qt_node_editor.node_serializable import Serializable, SerializableID
 
 log = logging.getLogger(__name__)
 
@@ -25,7 +25,7 @@ class InvalidSceneFileError(Exception):
     "Invalid scene file."
 
 class SceneSerialize(TypedDict):
-    id: NotRequired[int]  # TODO: required
+    id: NotRequired[SerializableID]  # TODO: required
     width: NotRequired[int]  # TODO: required
     height: NotRequired[int]  # TODO: required
     nodes: list[NodeSerialize]
