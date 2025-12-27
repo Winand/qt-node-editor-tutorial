@@ -6,7 +6,7 @@ from typing import cast, override
 import qss.nodeeditor_dark_resources  # noqa: F401 images for the dark skin
 from calc_sub_window import CalculatorSubWindow
 from qtpy.QtCore import Qt
-from qtpy.QtGui import QCloseEvent, QKeySequence
+from qtpy.QtGui import QCloseEvent, QIcon, QKeySequence, QPixmap
 from qtpy.QtWidgets import (
     QDockWidget,
     QFileDialog,
@@ -38,6 +38,9 @@ class CalculatorWindow(NodeEditorWindow):
             Path(__file__).parent / "qss/nodeeditor-dark.qss",
             self.stylesheet_filename,
         )
+
+        # https://stackoverflow.com/a/31308534 | https://youtu.be/C29ftCo9h50?t=501
+        self.empty_icon = QIcon(QPixmap(1, 1))
 
         self.mdi_area = QMdiArea()
         self.mdi_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
@@ -128,7 +131,7 @@ class CalculatorWindow(NodeEditorWindow):
                 continue
             self.statusBar().showMessage(f"File {fname} loaded", 5000)
             nodeeditor.set_title()
-            subwnd = some(self.mdi_area.addSubWindow(nodeeditor))
+            subwnd = self.create_mdi_child(nodeeditor)
             subwnd.show()
 
     def about(self) -> None:
@@ -219,9 +222,28 @@ class CalculatorWindow(NodeEditorWindow):
     def create_statusbar(self) -> None:
         self.statusBar().showMessage("Ready")
 
-    def create_mdi_child(self) -> QMdiSubWindow:
-        nodeeditor = CalculatorSubWindow()
-        return some(self.mdi_area.addSubWindow(nodeeditor))
+    def create_mdi_child(self, child_widget: CalculatorSubWindow | None = None,
+                         ) -> QMdiSubWindow:
+        "Create a child window and put a new or existing node editor into it."
+        nodeeditor = child_widget or CalculatorSubWindow()
+        subwnd = some(self.mdi_area.addSubWindow(nodeeditor))
+        subwnd.setWindowIcon(self.empty_icon)  # for tiled windows
+        # nodeeditor.scene.add_item_selected_listener(self.update_menu_edit)
+        # nodeeditor.scene.add_items_deselected_listener(self.update_menu_edit)
+        nodeeditor.scene.history.add_history_modified_listener(self.update_menu_edit)
+        nodeeditor.add_close_event_listener(self.on_subwindow_close)
+        return subwnd
+
+    def on_subwindow_close(self, widget: CalculatorSubWindow, event: QCloseEvent | None,
+                           ) -> None:
+        "Suggest to save a document on close event."
+        # TODO: filename is None in all new documents. Fix this.
+        existing = self.find_mdi_child(widget.filename)
+        self.mdi_area.setActiveSubWindow(existing)
+        if event and self.maybe_save():
+            event.accept()
+        elif event:
+            event.ignore()
 
     def find_mdi_child(self, filename: Path):
         for window in self.mdi_area.subWindowList():

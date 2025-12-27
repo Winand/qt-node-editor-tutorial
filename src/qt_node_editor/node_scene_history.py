@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Callable
 from typing import TYPE_CHECKING, TypedDict
 
 from qt_node_editor.node_graphics_edge import QDMGraphicsEdge
@@ -26,6 +27,7 @@ class SceneHistory:
         self.scene = scene
         self.clear()
         self.history_limit = 32
+        self._history_modified_listeners: list[Callable[[], None]] = []
 
     def clear(self) -> None:
         "Initialize history stack."
@@ -33,7 +35,7 @@ class SceneHistory:
         self.history_current_step = -1
 
     def store_initial_history_stamp(self) -> None:
-        self.store_history("Initial history stamp")
+        self.store_history("Initial history stamp", modified=False)
 
     def can_undo(self) -> bool:
         "Undo action is available."
@@ -55,13 +57,26 @@ class SceneHistory:
             self.history_current_step += 1
             self.restore_history()
 
-    def restore_history(self):
+    def add_history_modified_listener(self, callback: Callable[[], None]) -> None:
+        """
+        Add a new callback to be called when the scene history is updated.
+
+        :param callback: A callback function
+        :type callback: Callable[[], None]
+        """
+        self._history_modified_listeners.append(callback)
+
+    def restore_history(self) -> None:
+        "Update the scene with the history stamp at current step."
         log.debug("Restoring history .... current_step @%d (%d)",
                   self.history_current_step, len(self.history_stack))
         with self.scene.selection_handling_disabled():
             self.restore_history_stamp(self.history_stack[self.history_current_step])
+        self.scene.has_been_modified = self.history_current_step > 0
+        for callback in self._history_modified_listeners:
+            callback()
 
-    def store_history(self, desc: str, *, modified: bool = False):
+    def store_history(self, desc: str, *, modified: bool):
         self.scene.has_been_modified = modified
         hs = self.create_history_stamp(desc)
         if self.history_stack:  # @Winand
@@ -84,7 +99,10 @@ class SceneHistory:
         self.history_stack.append(hs)
         self.history_current_step += 1
         log.debug("  -- setting step to: %d", self.history_current_step)
-        log.debug(hs['selection'])
+
+        # always trigger history modified callbacks (i.e. to update Edit menu)
+        for callback in self._history_modified_listeners:
+            callback()
 
     def create_history_stamp(self, desc: str) -> HistoryStamp:
         sel_obj: HistorySel = {

@@ -31,6 +31,7 @@ class SceneSerialize(TypedDict):
     nodes: list[NodeSerialize]
     edges: list[EdgeSerialize]
 
+
 class Scene(Serializable):
     def __init__(self):
         super().__init__()
@@ -88,12 +89,12 @@ class Scene(Serializable):
         if current_selected_items := self.get_selected_items():
             if current_selected_items != self.last_selected_items:
                 self.last_selected_items = current_selected_items
-                self.history.store_history("Selection Changed")
+                self.history.store_history("Selection Changed", modified=False)
                 for callback in self._item_selected_listeners:
                     callback()
         elif self.last_selected_items:
             self.last_selected_items = []
-            self.history.store_history("Deselected everything")
+            self.history.store_history("Deselected everything", modified=False)
             for callback in self._items_deselected_listeners:
                 callback()
 
@@ -119,6 +120,7 @@ class Scene(Serializable):
 
     @has_been_modified.setter
     def has_been_modified(self, value: bool) -> None:
+        # TODO: modified -> unmodified: callbacks are not called
         if not self._has_been_modified and value:
             self._has_been_modified = True
             for callback in self._has_been_modified_listeners:
@@ -133,6 +135,15 @@ class Scene(Serializable):
         :type callback: Callable[[], None]
         """
         self._has_been_modified_listeners.append(callback)
+
+    def rem_has_been_modified_listener(self, callback: Callable[[], None]) -> None:
+        """
+        Remove a previously added callback for the scene modification.
+
+        :param callback: A callback function
+        :type callback: Callable[[], None]
+        """
+        self._has_been_modified_listeners.remove(callback)
 
     def add_item_selected_listener(self, callback: Callable[[], None]) -> None:
         """

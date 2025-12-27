@@ -133,11 +133,9 @@ class NodeEditorWindow(QMainWindow):
     @property
     def modified(self) -> bool:  # TODO: see NodeEditorWidget.is_modified
         "Checks if the document has been modified."
-        try:
-            return self.get_current_nodeeditor_widget().scene.has_been_modified
-        except AttributeError as e:
-            print(e)
-            return False
+        if not (editor := self.current_nodeeditor_widget()):
+            return False  # support for MDI mode where may be no opened editors
+        return editor.scene.has_been_modified
 
     def current_nodeeditor_widget(self) -> NodeEditorWidget | None:
         "Return the current NodeEditorWidget instance or None."
