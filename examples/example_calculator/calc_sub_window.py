@@ -1,11 +1,15 @@
 from collections.abc import Callable
-from typing import override
+from typing import TYPE_CHECKING, override
 
 from PyQt6.QtGui import QCloseEvent
 from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QWidget
 
 from qt_node_editor.node_editor_widget import NodeEditorWidget
+from qt_node_editor.utils import ref
+
+if TYPE_CHECKING:
+    from weakref import ReferenceType
 
 CloseEventCallback = Callable[["CalculatorSubWindow", QCloseEvent | None], None]
 
@@ -19,7 +23,7 @@ class CalculatorSubWindow(NodeEditorWidget):
 
         self.scene.add_has_been_modified_listener(self.set_title)
 
-        self._close_event_listeners: list[CloseEventCallback] = []
+        self._close_event_listeners: list[ReferenceType[CloseEventCallback]] = []
 
     def set_title(self):
         self.setWindowTitle(self.get_user_friendly_filename())
@@ -31,11 +35,10 @@ class CalculatorSubWindow(NodeEditorWidget):
         :param callback: A callback function
         :type callback: Callable[[], None]
         """
-        self._close_event_listeners.append(callback)
+        self._close_event_listeners.append(ref(callback))
 
     @override
     def closeEvent(self, a0: QCloseEvent | None) -> None:
-        for callback in self._close_event_listeners:
-            callback(self, a0)
-        # cleanup! https://www.youtube.com/watch?v=C29ftCo9h50&lc=Ugw-gQlXQ8CMU2OXnDV4AaABAg
-        self.scene.rem_has_been_modified_listener(self.set_title)
+        for callback_ref in self._close_event_listeners:
+            if callback := callback_ref():
+                callback(self, a0)

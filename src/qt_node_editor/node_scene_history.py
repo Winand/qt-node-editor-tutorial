@@ -5,8 +5,11 @@ from typing import TYPE_CHECKING, TypedDict
 from qt_node_editor.node_graphics_edge import QDMGraphicsEdge
 from qt_node_editor.node_graphics_node import QDMGraphicsNode
 from qt_node_editor.node_serializable import SerializableID
+from qt_node_editor.utils import ref
 
 if TYPE_CHECKING:
+    from weakref import ReferenceType
+
     from qt_node_editor.node_scene import Scene, SceneSerialize
 
 log = logging.getLogger(__name__)
@@ -27,7 +30,7 @@ class SceneHistory:
         self.scene = scene
         self.clear()
         self.history_limit = 32
-        self._history_modified_listeners: list[Callable[[], None]] = []
+        self._history_modified_listeners: list[ReferenceType[Callable[[], None]]] = []
 
     def clear(self) -> None:
         "Initialize history stack."
@@ -64,7 +67,7 @@ class SceneHistory:
         :param callback: A callback function
         :type callback: Callable[[], None]
         """
-        self._history_modified_listeners.append(callback)
+        self._history_modified_listeners.append(ref(callback))
 
     def restore_history(self) -> None:
         "Update the scene with the history stamp at current step."
@@ -73,8 +76,9 @@ class SceneHistory:
         with self.scene.selection_handling_disabled():
             self.restore_history_stamp(self.history_stack[self.history_current_step])
         self.scene.has_been_modified = self.history_current_step > 0
-        for callback in self._history_modified_listeners:
-            callback()
+        for callback_ref in self._history_modified_listeners:
+            if callback := callback_ref():
+                callback()
 
     def store_history(self, desc: str, *, modified: bool):
         self.scene.has_been_modified = modified
@@ -101,8 +105,9 @@ class SceneHistory:
         log.debug("  -- setting step to: %d", self.history_current_step)
 
         # always trigger history modified callbacks (i.e. to update Edit menu)
-        for callback in self._history_modified_listeners:
-            callback()
+        for callback_ref in self._history_modified_listeners:
+            if callback := callback_ref():
+                callback()
 
     def create_history_stamp(self, desc: str) -> HistoryStamp:
         sel_obj: HistorySel = {

@@ -6,7 +6,7 @@ import logging
 from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, NotRequired, TypedDict
+from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
 
 import typedload
 from qtpy.QtWidgets import QGraphicsItem
@@ -18,6 +18,10 @@ from qt_node_editor.node_node import Node, NodeSerialize
 from qt_node_editor.node_scene_clipboard import SceneClipboard
 from qt_node_editor.node_scene_history import SceneHistory
 from qt_node_editor.node_serializable import Serializable, SerializableID
+from qt_node_editor.utils import ref
+
+if TYPE_CHECKING:
+    from weakref import ReferenceType
 
 log = logging.getLogger(__name__)
 
@@ -45,9 +49,9 @@ class Scene(Serializable):
         self.last_selected_items = []
 
         # initialize all listeners
-        self._has_been_modified_listeners: list[Callable[[], None]] = []
-        self._item_selected_listeners: list[Callable[[], None]] = []
-        self._items_deselected_listeners: list[Callable[[], None]] = []
+        self._has_been_modified_listeners: list[ReferenceType[Callable[[], None]]] = []
+        self._item_selected_listeners: list[ReferenceType[Callable[[], None]]] = []
+        self._items_deselected_listeners: list[ReferenceType[Callable[[], None]]] = []
 
         self.init_ui()
         self.history = SceneHistory(self)
@@ -90,13 +94,15 @@ class Scene(Serializable):
             if current_selected_items != self.last_selected_items:
                 self.last_selected_items = current_selected_items
                 self.history.store_history("Selection Changed", modified=False)
-                for callback in self._item_selected_listeners:
-                    callback()
+                for callback_ref in self._item_selected_listeners:
+                    if callback := callback_ref():
+                        callback()
         elif self.last_selected_items:
             self.last_selected_items = []
             self.history.store_history("Deselected everything", modified=False)
-            for callback in self._items_deselected_listeners:
-                callback()
+            for callback_ref in self._items_deselected_listeners:
+                if callback := callback_ref():
+                    callback()
 
     def set_selection_handling(self, *, enable: bool) -> None:
         "Enable or disable handling of selection changes on the scene."
@@ -123,8 +129,9 @@ class Scene(Serializable):
         # TODO: modified -> unmodified: callbacks are not called
         if not self._has_been_modified and value:
             self._has_been_modified = True
-            for callback in self._has_been_modified_listeners:
-                callback()
+            for callback_ref in self._has_been_modified_listeners:
+                if callback := callback_ref():
+                    callback()
         self._has_been_modified = value
 
     def add_has_been_modified_listener(self, callback: Callable[[], None]) -> None:
@@ -134,16 +141,7 @@ class Scene(Serializable):
         :param callback: A callback function
         :type callback: Callable[[], None]
         """
-        self._has_been_modified_listeners.append(callback)
-
-    def rem_has_been_modified_listener(self, callback: Callable[[], None]) -> None:
-        """
-        Remove a previously added callback for the scene modification.
-
-        :param callback: A callback function
-        :type callback: Callable[[], None]
-        """
-        self._has_been_modified_listeners.remove(callback)
+        self._has_been_modified_listeners.append(ref(callback))
 
     def add_item_selected_listener(self, callback: Callable[[], None]) -> None:
         """
@@ -152,7 +150,7 @@ class Scene(Serializable):
         :param callback: A callback function
         :type callback: Callable[[], None]
         """
-        self._item_selected_listeners.append(callback)
+        self._item_selected_listeners.append(ref(callback))
 
     def add_items_deselected_listener(self, callback: Callable[[], None]) -> None:
         """
@@ -161,7 +159,7 @@ class Scene(Serializable):
         :param callback: A callback function
         :type callback: Callable[[], None]
         """
-        self._items_deselected_listeners.append(callback)
+        self._items_deselected_listeners.append(ref(callback))
 
     # # custom flag to detect node or edge has been selected....
     # def reset_last_selected_states(self) -> None:

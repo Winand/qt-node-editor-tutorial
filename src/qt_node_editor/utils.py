@@ -1,6 +1,9 @@
 import logging
 import pkgutil
+import weakref
+from collections.abc import Callable
 from pathlib import Path
+from types import MethodType
 from typing import Any, Generic, Type, TypeVar, cast
 
 from qtpy.QtWidgets import QApplication
@@ -36,6 +39,17 @@ class _Some():
         return cast(T, other)
 
 Some = _Some()
+
+C = TypeVar("C", bound=Callable[..., Any])
+# NOTE: ref[C: Callable[..., Any]](func: C) doesn't work in pylance
+def ref[C](func: C) -> weakref.ReferenceType[C]:
+    "Create a weak reference for a function or method."
+    if isinstance(func, MethodType):
+        return weakref.WeakMethod(func)
+    if getattr(func, "__name__", None) == "<lambda>":
+        msg = "Lambda functions are not supported in this context"
+        raise ValueError(msg)
+    return weakref.ref(func)
 
 
 def _load_stylesheet(filename: Path) -> str:
