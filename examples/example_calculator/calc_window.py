@@ -4,13 +4,13 @@ from pathlib import Path
 from typing import cast, override
 
 import qss.nodeeditor_dark_resources  # noqa: F401 images for the dark skin
+from calc_drag_listbox import QDMDragListbox
 from calc_sub_window import CalculatorSubWindow
 from qtpy.QtCore import Qt
 from qtpy.QtGui import QCloseEvent, QIcon, QKeySequence, QPixmap
 from qtpy.QtWidgets import (
     QDockWidget,
     QFileDialog,
-    QListWidget,
     QMdiArea,
     QMdiSubWindow,
     QMenuBar,
@@ -55,13 +55,12 @@ class CalculatorWindow(NodeEditorWindow):
         # self.window_mapper = QSignalMapper(self)
         # self.window_mapper.mapping(QWidget).connect(self.set_active_subwindow)
 
+        self.create_nodes_dock()
         self.create_actions()
         self.create_menus()
         self.create_toolbars()
         self.create_statusbar()
         self.update_menus()
-
-        self.create_nodes_dock()
 
         self.read_settings()
 
@@ -184,6 +183,13 @@ class CalculatorWindow(NodeEditorWindow):
     def update_menu_window(self) -> None:
         "Create Window menu with a list of currently opened documents."
         self.menu_window.clear()
+
+        nodes_toolbar = some(self.menu_window.addAction("Nodes Toolbar"))
+        nodes_toolbar.triggered.connect(self.on_window_nodes_toolbar)
+        nodes_toolbar.setCheckable(True)
+        nodes_toolbar.setChecked(self.nodes_dock.isVisible())
+
+        self.menu_window.addSeparator()
         self.menu_window.addAction(self.act_wnd_close)
         self.menu_window.addAction(self.act_wnd_close_all)
         self.menu_window.addSeparator()
@@ -207,17 +213,19 @@ class CalculatorWindow(NodeEditorWindow):
             action.setChecked(child is self.current_nodeeditor_widget())
             action.triggered.connect(partial(self.set_active_subwindow, window=window))
 
+    def on_window_nodes_toolbar(self) -> None:
+        self.nodes_dock.setVisible(not self.nodes_dock.isVisible())
+
     def create_toolbars(self) -> None:
         ...
 
     def create_nodes_dock(self):
-        self.list_widget = QListWidget()
-        self.list_widget.addItems(["Add", "Substract", "Multiply", "Divide"])
-        self.items = QDockWidget("Nodes")
-        self.items.setWidget(self.list_widget)
-        self.items.setFloating(False)
+        self.nodes_list_widget = QDMDragListbox()
+        self.nodes_dock = QDockWidget("Nodes")
+        self.nodes_dock.setWidget(self.nodes_list_widget)
+        self.nodes_dock.setFloating(False)
 
-        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.items)
+        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.nodes_dock)
 
     def create_statusbar(self) -> None:
         self.statusBar().showMessage("Ready")

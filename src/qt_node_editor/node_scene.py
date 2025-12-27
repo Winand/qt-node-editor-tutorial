@@ -63,7 +63,7 @@ class Scene(Serializable):
         self._selection_handling = True
 
     def init_ui(self):
-        self.gr_scene = QDMGraphicsScene(self)
+        self.gr_scene = QDMGraphicsScene(self)  # TODO: graphics scene has no parent
         self.gr_scene.set_rect(self.scene_width, self.scene_height)
 
     # def on_item_selected(self) -> None:
