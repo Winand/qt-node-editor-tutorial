@@ -1,12 +1,15 @@
 from collections.abc import Callable
 from typing import TYPE_CHECKING, override
 
-from PyQt6.QtGui import QCloseEvent
+from calc_conf import MIMETYPE_LISTBOX, Opcode
 from qtpy.QtCore import Qt
+from qtpy.QtGui import QCloseEvent, QDragEnterEvent, QDropEvent, QPixmap
 from qtpy.QtWidgets import QWidget
+from util_datastream import from_bytearray
 
 from qt_node_editor.node_editor_widget import NodeEditorWidget
-from qt_node_editor.utils import ref
+from qt_node_editor.node_node import Node
+from qt_node_editor.utils import ref, some
 
 if TYPE_CHECKING:
     from weakref import ReferenceType
@@ -22,6 +25,8 @@ class CalculatorSubWindow(NodeEditorWidget):
         self.set_title()
 
         self.scene.add_has_been_modified_listener(self.set_title)
+        self.scene.add_drag_enter_listener(self.on_drag_enter)
+        self.scene.add_drop_listener(self.on_drop)
 
         self._close_event_listeners: list[ReferenceType[CloseEventCallback]] = []
 
@@ -42,3 +47,29 @@ class CalculatorSubWindow(NodeEditorWidget):
         for callback_ref in self._close_event_listeners:
             if callback := callback_ref():
                 callback(self, a0)
+
+    def on_drag_enter(self, event: QDragEnterEvent) -> None:
+        if some(event.mimeData()).hasFormat(MIMETYPE_LISTBOX):
+            event.acceptProposedAction()  # also does setAccepted(True)
+        else:
+            event.ignore()  # =setAccepted(False)
+
+    def on_drop(self, event: QDropEvent) -> None:
+        mime_data = some(event.mimeData())
+        if not mime_data.hasFormat(MIMETYPE_LISTBOX):
+            event.ignore()
+            return
+
+        event.accept()
+        event_data = mime_data.data(MIMETYPE_LISTBOX)
+        _: tuple[QPixmap, Opcode, str] = from_bytearray(
+            event_data, QPixmap, Opcode, str)
+        _pixmap, opcode, text = _
+        cursor_pos = event.position().toPoint()
+        # TODO: pass QGraphicsView instance to listeners?
+        scene_pos = self.scene.gr_scene.views()[0].mapToScene(cursor_pos)
+        print(f"GOT DROP: [{opcode.name}] '{text}' "
+              f"at {scene_pos.x():.1f},{scene_pos.y():.1f}")
+
+        node = Node(self.scene, text, inputs=[1, 1], outputs=[2])
+        node.set_pos(scene_pos.x(), scene_pos.y())

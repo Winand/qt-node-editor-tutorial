@@ -1,8 +1,17 @@
 import logging
+from collections.abc import Callable
 from enum import Enum, auto
+from typing import TYPE_CHECKING, override
 
 from qtpy.QtCore import QEvent, QPointF, Qt, Signal
-from qtpy.QtGui import QKeyEvent, QMouseEvent, QPainter, QWheelEvent
+from qtpy.QtGui import (
+    QDragEnterEvent,
+    QDropEvent,
+    QKeyEvent,
+    QMouseEvent,
+    QPainter,
+    QWheelEvent,
+)
 from qtpy.QtWidgets import QApplication, QGraphicsItem, QGraphicsView, QWidget
 
 from qt_node_editor.node_edge import Edge, EdgeType
@@ -11,6 +20,10 @@ from qt_node_editor.node_graphics_edge import QDMGraphicsEdge
 from qt_node_editor.node_graphics_node import QDMGraphicsNode
 from qt_node_editor.node_graphics_socket import QDMGraphicsSocket
 from qt_node_editor.node_scene import Scene
+from qt_node_editor.utils import ref
+
+if TYPE_CHECKING:
+    from weakref import ReferenceType
 
 RenderHint = QPainter.RenderHint
 log = logging.getLogger(__name__)
@@ -21,6 +34,8 @@ class Mode(Enum):
     EDGE_CUT = auto()
 
 EDGE_DRAG_START_THRESHOLD = 10  # px
+
+type WeakListener[T] = ReferenceType[Callable[[T], None]]
 
 
 class QDMGraphicsView(QGraphicsView):
@@ -48,6 +63,9 @@ class QDMGraphicsView(QGraphicsView):
         self.cutline = QDMCutLine()
         self._scene.gr_scene.addItem(self.cutline)
 
+        self._drag_enter_listeners: list[WeakListener[QDragEnterEvent]] = []
+        self._drop_listeners: list[WeakListener[QDropEvent]] = []
+
     def init_ui(self):
         # https://doc.qt.io/qt-6/qpainter.html#RenderHint-enum
         # HighQualityAntialiasing is obsolete
@@ -67,6 +85,29 @@ class QDMGraphicsView(QGraphicsView):
 
         # Item selection rectangle
         self.setDragMode(QGraphicsView.DragMode.RubberBandDrag)
+
+        self.setAcceptDrops(True)
+
+    @override
+    def dragEnterEvent(self, event: QDragEnterEvent | None) -> None:
+        assert event  # is never None
+        for callback_ref in self._drag_enter_listeners:
+            if callback := callback_ref():
+                callback(event)
+
+    @override
+    def dropEvent(self, event: QDropEvent | None) -> None:
+        assert event  # is never None
+        for callback_ref in self._drop_listeners:
+            if callback := callback_ref():
+                callback(event)
+
+    def add_drag_enter_listener(self, callback: Callable[[QDragEnterEvent], None],
+                                ) -> None:
+        self._drag_enter_listeners.append(ref(callback))
+
+    def add_drop_listener(self, callback: Callable[[QDropEvent], None]) -> None:
+        self._drop_listeners.append(ref(callback))
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
         if event.button() == Qt.MouseButton.LeftButton:

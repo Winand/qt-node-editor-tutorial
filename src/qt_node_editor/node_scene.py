@@ -6,9 +6,10 @@ import logging
 from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
+from typing import TYPE_CHECKING, Any, NotRequired, TypedDict, cast
 
 import typedload
+from qtpy.QtGui import QDragEnterEvent, QDropEvent
 from qtpy.QtWidgets import QGraphicsItem
 from typedload.exceptions import TypedloadException
 
@@ -22,6 +23,8 @@ from qt_node_editor.utils import ref
 
 if TYPE_CHECKING:
     from weakref import ReferenceType
+
+    from qt_node_editor.node_graphics_view import QDMGraphicsView
 
 log = logging.getLogger(__name__)
 
@@ -160,6 +163,15 @@ class Scene(Serializable):
         :type callback: Callable[[], None]
         """
         self._items_deselected_listeners.append(ref(callback))
+
+    def add_drag_enter_listener(self, callback: Callable[[QDragEnterEvent], None],
+                                ) -> None:
+        for view in self.gr_scene.views():
+            cast("QDMGraphicsView", view).add_drag_enter_listener(callback)
+
+    def add_drop_listener(self, callback: Callable[[QDropEvent], None]) -> None:
+        for view in self.gr_scene.views():
+            cast("QDMGraphicsView", view).add_drop_listener(callback)
 
     # # custom flag to detect node or edge has been selected....
     # def reset_last_selected_states(self) -> None:

@@ -1,7 +1,7 @@
 import math
 
 # https://adamj.eu/tech/2021/05/13/python-type-hints-how-to-fix-circular-imports/
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, override
 
 from qtpy import API_NAME
 from qtpy.QtCore import QLine, QObject, QRectF
@@ -9,6 +9,8 @@ from qtpy.QtGui import QColor, QPainter, QPen
 from qtpy.QtWidgets import QGraphicsScene
 
 if TYPE_CHECKING:
+    from qtpy.QtWidgets import QGraphicsSceneDragDropEvent
+
     from qt_node_editor.node_scene import Scene
 
 
@@ -34,6 +36,10 @@ class QDMGraphicsScene(QGraphicsScene):
         self._pen_dark.setWidth(2)
 
         self.setBackgroundBrush(self._color_background)
+
+    @override
+    def dragMoveEvent(self, event: "QGraphicsSceneDragDropEvent | None") -> None:
+        "Skip drag move event so it is processed by parent widget."  # https://youtu.be/CX7ox9v4tpc?t=981
 
     def set_rect(self, width: int, height: int):
         """
