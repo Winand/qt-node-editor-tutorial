@@ -26,30 +26,50 @@ class NodeSerialize(TypedDict):
 
 
 class Node(Serializable):
-    def __init__(self, scene: "Scene", title="Undefined Node",
+    def __init__(self, scene: "Scene", title: str = "Undefined Node",
                  inputs: list[int] | None = None,
                  outputs: list[int] | None = None) -> None:
         super().__init__()
         self._title = title  # FIXME: title is used from within QDMGraphicsNode constructor
         self.scene = scene
-        self.content = QDMContentWidget(self)
-        self.gr_node = QDMGraphicsNode(self)
+        self.init_gui_objects()
+        self.init_settings()
         self.title = title
 
         self.scene.add_node(self)
         self.scene.gr_scene.addItem(self.gr_node)
 
-        self.socket_spacing = 22
-
         self.inputs: list[Socket] = []
         self.outputs: list[Socket] = []
-        for counter, item in enumerate(inputs or []):
-            socket = Socket(self, index=counter, position=Pos.LEFT_BOTTOM,
-                            socket_type=item, multi_edges=False)
+        self.init_sockets(inputs, outputs)
+
+    def init_gui_objects(self) -> None:
+        self.content = QDMContentWidget(self)
+        self.gr_node = QDMGraphicsNode(self)
+
+    def init_settings(self) -> None:
+        self.socket_spacing = 22
+        self.input_socket_position = Pos.LEFT_BOTTOM
+        self.output_socket_position = Pos.RIGHT_TOP
+        self.input_multi_edged = False
+        self.output_multi_edged = True
+
+    def init_sockets(self, inputs: list[int] | None, outputs: list[int] | None,
+                     *, reset: bool = True) -> None:
+        "Create sockets for inputs and outputs."
+        if reset:  # clear sockets
+            for socket in self.inputs + self.outputs:
+                self.scene.gr_scene.removeItem(socket.gr_socket)
+            self.inputs = []
+            self.outputs = []
+
+        for index, socket_type in enumerate(inputs or []):
+            socket = Socket(self, index, self.input_socket_position,
+                            socket_type, multi_edges=self.input_multi_edged)
             self.inputs.append(socket)
-        for counter, item in enumerate(outputs or []):
-            socket = Socket(self, index=counter, position=Pos.RIGHT_TOP,
-                            socket_type=item)
+        for index, socket_type in enumerate(outputs or []):
+            socket = Socket(self, index, self.output_socket_position,
+                            socket_type, multi_edges=self.output_multi_edged)
             self.outputs.append(socket)
 
     def __str__(self):

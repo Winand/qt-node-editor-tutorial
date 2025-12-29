@@ -2,13 +2,13 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING, override
 
 from calc_conf import MIMETYPE_LISTBOX, Opcode
+from calc_node_base import CalcNode
 from qtpy.QtCore import Qt
 from qtpy.QtGui import QCloseEvent, QDragEnterEvent, QDropEvent, QPixmap
 from qtpy.QtWidgets import QWidget
 from util_datastream import from_bytearray
 
 from qt_node_editor.node_editor_widget import NodeEditorWidget
-from qt_node_editor.node_node import Node
 from qt_node_editor.utils import ref, some
 
 if TYPE_CHECKING:
@@ -71,5 +71,5 @@ class CalculatorSubWindow(NodeEditorWidget):
         print(f"GOT DROP: [{opcode.name}] '{text}' "
               f"at {scene_pos.x():.1f},{scene_pos.y():.1f}")
 
-        node = Node(self.scene, text, inputs=[1, 1], outputs=[2])
+        node = CalcNode(self.scene, opcode, text, inputs=[1, 1], outputs=[2])
         node.set_pos(scene_pos.x(), scene_pos.y())

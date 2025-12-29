@@ -19,8 +19,8 @@ class ContentSerialize(TypedDict):
     pass
 
 
-class QDMContentWidget(QWidget, Serializable):
-    def __init__(self, node: "Node", parent: QWidget | None = None):
+class QDMContentWidget[N: "Node"](QWidget, Serializable):
+    def __init__(self, node: N, parent: QWidget | None = None):
         self.node = node
         super().__init__(parent)
 
