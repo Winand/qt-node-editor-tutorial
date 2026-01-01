@@ -1,8 +1,8 @@
+import logging
 from collections.abc import Callable
 from typing import TYPE_CHECKING, override
 
-from calc_conf import MIMETYPE_LISTBOX, Opcode
-from calc_node_base import CalcNode
+from calc_conf import MIMETYPE_LISTBOX, Opcode, get_class_from_opcode
 from qtpy.QtCore import Qt
 from qtpy.QtGui import QCloseEvent, QDragEnterEvent, QDropEvent, QPixmap
 from qtpy.QtWidgets import QWidget
@@ -15,6 +15,8 @@ if TYPE_CHECKING:
     from weakref import ReferenceType
 
 CloseEventCallback = Callable[["CalculatorSubWindow", QCloseEvent | None], None]
+
+log = logging.getLogger(__name__)
 
 
 class CalculatorSubWindow(NodeEditorWidget):
@@ -68,8 +70,10 @@ class CalculatorSubWindow(NodeEditorWidget):
         cursor_pos = event.position().toPoint()
         # TODO: pass QGraphicsView instance to listeners?
         scene_pos = self.scene.gr_scene.views()[0].mapToScene(cursor_pos)
-        print(f"GOT DROP: [{opcode.name}] '{text}' "
-              f"at {scene_pos.x():.1f},{scene_pos.y():.1f}")
+        log.debug("GOT DROP: [%s] '%s' at %.1f,%.1f",
+                  opcode.name, text, scene_pos.x(), scene_pos.y())
 
-        node = CalcNode(self.scene, opcode, text, inputs=[1, 1], outputs=[2])
+        node = get_class_from_opcode(opcode)(self.scene)
         node.set_pos(scene_pos.x(), scene_pos.y())
+        self.scene.history.store_history(f"Created node {node.__class__.__name__}",
+                                         modified=True)

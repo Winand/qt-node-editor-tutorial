@@ -43,7 +43,6 @@ class QDMGraphicsNode(QGraphicsItem):
         self.init_title()  # TODO: pass _title_color, _title_font, _padding in args
         self.title = self.node.title
 
-        self.init_sockets()
         self.init_content()
 
     def init_sizes(self) -> None:
@@ -130,9 +129,6 @@ class QDMGraphicsNode(QGraphicsItem):
             int(self.height - 2 * self.edge_size - self.title_height)
         )
         self.gr_content.setWidget(self.content)
-
-    def init_sockets(self):
-        pass
 
     def paint(self, painter: QPainter, option: QStyleOptionGraphicsItem | None,
               widget: QWidget | None = None) -> None:  # required

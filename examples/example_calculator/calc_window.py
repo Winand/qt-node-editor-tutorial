@@ -1,9 +1,12 @@
+import logging
 from collections.abc import Callable
 from functools import partial
 from pathlib import Path
 from typing import cast, override
 
+import calc_conf_nodes  # noqa: F401 register node types
 import qss.nodeeditor_dark_resources  # noqa: F401 images for the dark skin
+from calc_conf import CALC_NODES
 from calc_drag_listbox import QDMDragListbox
 from calc_sub_window import CalculatorSubWindow
 from qtpy.QtCore import Qt
@@ -20,6 +23,8 @@ from qtpy.QtWidgets import (
 
 from qt_node_editor.node_editor_window import NodeEditorWindow
 from qt_node_editor.utils import load_stylesheets, some
+
+log = logging.getLogger(__name__)
 
 
 class CalculatorWindow(NodeEditorWindow):
@@ -41,6 +46,8 @@ class CalculatorWindow(NodeEditorWindow):
 
         # https://stackoverflow.com/a/31308534 | https://youtu.be/C29ftCo9h50?t=501
         self.empty_icon = QIcon(QPixmap(1, 1))
+
+        log.debug("Registered nodes: %s", CALC_NODES)
 
         self.mdi_area = QMdiArea()
         self.mdi_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)

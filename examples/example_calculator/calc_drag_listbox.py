@@ -2,7 +2,7 @@ from enum import IntEnum, auto
 from pathlib import Path
 from typing import override
 
-from calc_conf import MIMETYPE_LISTBOX, Opcode
+from calc_conf import CALC_NODES, MIMETYPE_LISTBOX, Opcode
 from qtpy.QtCore import QMimeData, QPoint, QSize, Qt
 from qtpy.QtGui import QDrag, QIcon, QPixmap
 from qtpy.QtWidgets import QListWidget, QListWidgetItem, QWidget
@@ -29,12 +29,8 @@ class QDMDragListbox(QListWidget):
         self.add_items()
 
     def add_items(self) -> None:
-        self.add_item("Input", Path("icons/in.png"), Opcode.Input)
-        self.add_item("Output", Path("icons/out.png"), Opcode.Output)
-        self.add_item("Add", Path("icons/add.png"), Opcode.Add)
-        self.add_item("Subtract", Path("icons/sub.png"), Opcode.Subtract)
-        self.add_item("Multiply", Path("icons/mul.png"), Opcode.Multiply)
-        self.add_item("Divide", Path("icons/divide.png"), Opcode.Divide)
+        for _, node in sorted(CALC_NODES.items()):
+            self.add_item(node.optitle, node.icon, node.opcode)
 
     def add_item(self, name: str, icon: Path | None = None,
                  opcode: Opcode | None = None) -> None:

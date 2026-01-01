@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import override
 
 from calc_conf import Opcode
@@ -27,18 +28,21 @@ class CalcContent(QDMContentWidget["CalcNode"]):
 
 
 class CalcNode(Node):
-    def __init__(self, scene: Scene, opcode: Opcode, optitle: str,
-                 content_label: str = "", content_label_objname: str = "calc_node_bg",
+    "Base class for nodes."
+    icon: Path | None = None
+    opcode = Opcode.Unset
+    optitle = "Undefined"
+    content_label = ""
+    content_label_objname = "calc_node_bg"
+
+    def __init__(self, scene: Scene,
                  inputs: list[int] | None = None,
                  outputs: list[int] | None = None) -> None:
-        inputs = inputs or [2, 2]
-        outputs = outputs or [1]
-        self.opcode = opcode
-        self.optitle = optitle
-        self.content_label = content_label
-        self.content_label_objname = content_label_objname
-        super().__init__(scene, optitle, inputs, outputs)
+        inputs = [2, 2] if inputs is None else inputs
+        outputs = [1] if outputs is None else outputs
+        super().__init__(scene, self.optitle, inputs, outputs)
 
+    @override
     def init_gui_objects(self) -> None:
         self.content = CalcContent(self)
         self.gr_node = CalcGraphicsNode(self)
