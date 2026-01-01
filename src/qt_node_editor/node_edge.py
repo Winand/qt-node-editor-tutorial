@@ -104,12 +104,12 @@ class Edge(Serializable):
             # disconnect_from_sockets sets start_socket to None
             # remove sets gr_edge to None
             raise ValueError(f"{self.start_socket=} {self.gr_edge=}")
-        source_pos = self.start_socket.get_socket_position()
+        source_pos = list(self.start_socket.get_socket_position())
         source_pos[0] += self.start_socket.node.gr_node.pos().x()
         source_pos[1] += self.start_socket.node.gr_node.pos().y()
         self.gr_edge.set_source(*source_pos)
         if self.end_socket is not None:
-            end_pos = self.end_socket.get_socket_position()
+            end_pos = list(self.end_socket.get_socket_position())
             end_pos[0] += self.end_socket.node.gr_node.pos().x()
             end_pos[1] += self.end_socket.node.gr_node.pos().y()
             self.gr_edge.set_destination(*end_pos)

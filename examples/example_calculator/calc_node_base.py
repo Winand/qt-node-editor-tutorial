@@ -8,6 +8,7 @@ from qt_node_editor.node_content_widget import QDMContentWidget
 from qt_node_editor.node_graphics_node import QDMGraphicsNode
 from qt_node_editor.node_node import Node
 from qt_node_editor.node_scene import Scene
+from qt_node_editor.node_socket import Pos
 
 
 class CalcGraphicsNode(QDMGraphicsNode):
@@ -16,19 +17,20 @@ class CalcGraphicsNode(QDMGraphicsNode):
         super().init_sizes()
         self.width = 160
         self.height = 74
-        self.edge_size = 5.0
-        self._padding = 8.0  # title x-padding
+        self.edge_roundness = 6.0
+        self.edge_padding = 0.0
+        self.title_horizontal_padding = 8.0
 
 
 class CalcContent(QDMContentWidget["CalcNode"]):
     @override
     def init_ui(self) -> None:
         lbl = QLabel(self.node.content_label, self)
-        lbl.setObjectName(self.node.content_label_objname)
+        lbl.setObjectName(self.node.content_label_objname)  # TODO: what is it for?
 
 
 class CalcNode(Node):
-    "Base class for nodes."
+    "Base class for calculator nodes."
     icon: Path | None = None
     opcode = Opcode.Unset
     optitle = "Undefined"
@@ -44,5 +46,11 @@ class CalcNode(Node):
 
     @override
     def init_gui_objects(self) -> None:
-        self.content = CalcContent(self)
-        self.gr_node = CalcGraphicsNode(self)
+        self.content = CalcContent(self)  # FIXME: no parent?
+        self.gr_node = CalcGraphicsNode(self)  # FIXME: no parent?
+
+    @override
+    def init_settings(self) -> None:
+        super().init_settings()
+        self.input_socket_position = Pos.LEFT_CENTER
+        self.output_socket_position = Pos.RIGHT_CENTER

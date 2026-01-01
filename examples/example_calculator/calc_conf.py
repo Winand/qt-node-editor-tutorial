@@ -35,7 +35,7 @@ def register_node_now(class_reference: type["CalcNode"]):
     CALC_NODES[opcode] = class_reference
 
 
-def register_node(original_class: type["CalcNode"]):
+def register_node[T: "CalcNode"](original_class: type[T]) -> type[T]:
     register_node_now(original_class)
     return original_class
 

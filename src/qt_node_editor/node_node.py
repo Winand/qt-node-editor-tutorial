@@ -4,8 +4,7 @@ Node
 import logging
 from typing import TYPE_CHECKING, TypedDict
 
-from qt_node_editor.node_content_widget import (ContentSerialize,
-                                                QDMContentWidget)
+from qt_node_editor.node_content_widget import ContentSerialize, QDMContentWidget
 from qt_node_editor.node_graphics_node import QDMGraphicsNode
 from qt_node_editor.node_serializable import Serializable, SerializableID
 from qt_node_editor.node_socket import Pos, Socket, SocketSerialize
@@ -63,13 +62,16 @@ class Node(Serializable):
             self.inputs = []
             self.outputs = []
 
-        for index, socket_type in enumerate(inputs or []):
+        inputs, outputs = inputs or [], outputs or []
+        for index, socket_type in enumerate(inputs):
             socket = Socket(self, index, self.input_socket_position,
-                            socket_type, multi_edges=self.input_multi_edged)
+                            socket_type, multi_edges=self.input_multi_edged,
+                            socket_count_on_side=len(inputs), is_input=True)
             self.inputs.append(socket)
-        for index, socket_type in enumerate(outputs or []):
+        for index, socket_type in enumerate(outputs):
             socket = Socket(self, index, self.output_socket_position,
-                            socket_type, multi_edges=self.output_multi_edged)
+                            socket_type, multi_edges=self.output_multi_edged,
+                            socket_count_on_side=len(outputs), is_input=False)
             self.outputs.append(socket)
 
     def __str__(self):
@@ -93,18 +95,27 @@ class Node(Serializable):
         self._title = value
         self.gr_node.title = value
 
-    def get_socket_position(self, index: int, position: Pos):
+    def get_socket_position(self, index: int, position: Pos,
+                            socket_count_on_side: int = 1) -> tuple[float, float]:
         "Get socket element x,y position by its index."
-        x = 0 if position in (Pos.LEFT_TOP, Pos.LEFT_BOTTOM) else \
-            self.gr_node.width
+        x = 0 if position in (Pos.LEFT_TOP, Pos.LEFT_CENTER, Pos.LEFT_BOTTOM) else \
+            float(self.gr_node.width)
         if position in (Pos.LEFT_BOTTOM, Pos.RIGHT_BOTTOM):
-            # FIXME: _padding is protected and is used for node title only
-            y = self.gr_node.height - self.gr_node._padding - \
-                self.gr_node.edge_size - index * self.socket_spacing
+            y = self.gr_node.height - self.gr_node.edge_roundness - \
+                self.gr_node.socket_vertical_padding - index * self.socket_spacing
+        elif position in (Pos.LEFT_CENTER, Pos.RIGHT_CENTER):
+            title_height = self.gr_node.title_height
+            content_height = self.gr_node.height - title_height
+            sockets_height = (socket_count_on_side - 1) * self.socket_spacing
+            sockets_top = (content_height - sockets_height) / 2
+            y = title_height + sockets_top + index * self.socket_spacing
+        elif position in (Pos.LEFT_TOP, Pos.RIGHT_TOP):
+            y = self.gr_node.title_height + self.gr_node.socket_vertical_padding + \
+                index * self.socket_spacing
         else:
-            y = self.gr_node.title_height + self.gr_node._padding + \
-                self.gr_node.edge_size + index * self.socket_spacing
-        return [x, y]
+            msg = f"Unknown socket position {position}"
+            raise ValueError(msg)
+        return (x, y)
 
     def update_connected_edges(self):
         "Update location of edges connected to the node."
@@ -156,7 +167,9 @@ class Node(Serializable):
         for socket_data in data["inputs"]:
             new_socket = Socket(node=self, index=socket_data["index"],
                                 position=socket_data["position"],
-                                socket_type=socket_data["socket_type"])  # FIXME: multi_edges=False?
+                                socket_type=socket_data["socket_type"],
+                                socket_count_on_side=len(data["inputs"]),
+                                is_input=True)  # FIXME: multi_edges=False?
             new_socket.deserialize(socket_data, hashmap, restore_id)
             self.inputs.append(new_socket)
 
@@ -164,7 +177,9 @@ class Node(Serializable):
         for socket_data in data["outputs"]:
             new_socket = Socket(node=self, index=socket_data["index"],
                                 position=socket_data["position"],
-                                socket_type=socket_data["socket_type"])
+                                socket_type=socket_data["socket_type"],
+                                socket_count_on_side=len(data["outputs"]),
+                                is_input=False)
             new_socket.deserialize(socket_data, hashmap, restore_id)
             self.outputs.append(new_socket)
 

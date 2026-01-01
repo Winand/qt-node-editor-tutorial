@@ -16,8 +16,10 @@ if TYPE_CHECKING:
 # int required for serialization https://stackoverflow.com/q/24481852
 class Pos(int, Enum):
     LEFT_TOP = auto()
+    LEFT_CENTER = auto()
     LEFT_BOTTOM = auto()
     RIGHT_TOP = auto()
+    RIGHT_CENTER = auto()
     RIGHT_BOTTOM = auto()
 
 class SocketSerialize(TypedDict):
@@ -32,16 +34,20 @@ log = logging.getLogger(__name__)
 
 class Socket(Serializable):
     def __init__(self, node: "Node", index = 0, position=Pos.LEFT_TOP,
-                 socket_type=1, *, multi_edges: bool = True) -> None:
+                 socket_type=1, *, multi_edges: bool = True,
+                 socket_count_on_side: int = 1, is_input: bool = False) -> None:
         super().__init__()
         self.node = node
         self.index = index
         self.position = position
         self.socket_type = socket_type
         self.is_multi_edges = multi_edges
+        self.socket_count_on_side = socket_count_on_side  # FIXME: handle in Node
+        self.is_input = is_input
+        self.is_output = not is_input
 
         self.gr_socket = QDMGraphicsSocket(self, socket_type)
-        self.gr_socket.setPos(*self.node.get_socket_position(index, position))
+        self.set_socket_position()
 
         self.edges: list[Edge] = []
 
@@ -49,8 +55,14 @@ class Socket(Serializable):
         multi = " multi" if self.is_multi_edges else ""
         return f"<Socket{multi} ..{hex(id(self))[-5:]} '{self.node.title}'>"
 
-    def get_socket_position(self):
-        return self.node.get_socket_position(self.index, self.position)
+    def set_socket_position(self) -> None:
+        "Set graphical socket (x, y) position."
+        self.gr_socket.setPos(*self.get_socket_position())
+
+    def get_socket_position(self) -> tuple[float, float]:
+        "Get (x, y) position of the socket as a tuple."
+        return self.node.get_socket_position(self.index, self.position,
+                                             self.socket_count_on_side)
 
     def add_edge(self, edge: "Edge") -> None:
         "Append a new edge to the edges connected to the socket."
@@ -75,7 +87,8 @@ class Socket(Serializable):
     def determine_multi_edges(self, data: SocketSerialize) -> bool:
         "Get multi_edges property from data, by default return True for right sockets."
         return data.get(
-            "multi_edges", data["position"] in { Pos.RIGHT_TOP, Pos.RIGHT_BOTTOM },
+            "multi_edges", data["position"] in { Pos.RIGHT_TOP, Pos.RIGHT_CENTER,
+                                                 Pos.RIGHT_BOTTOM },
         )
 
 
