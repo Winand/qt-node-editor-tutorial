@@ -73,8 +73,7 @@ class SceneHistory:
         "Update the scene with the history stamp at current step."
         log.debug("Restoring history .... current_step @%d (%d)",
                   self.history_current_step, len(self.history_stack))
-        with self.scene.selection_handling_disabled():
-            self.restore_history_stamp(self.history_stack[self.history_current_step])
+        self.restore_history_stamp(self.history_stack[self.history_current_step])
         self.scene.has_been_modified = self.history_current_step > 0
         for callback_ref in self._history_modified_listeners:
             if callback := callback_ref():
@@ -129,20 +128,20 @@ class SceneHistory:
 
     def restore_history_stamp(self, history_stamp: HistoryStamp):
         log.debug("RHS: %s", history_stamp['desc'])
+        with self.scene.selection_handling_disabled():
+            self.scene.deserialize(history_stamp['snapshot'])
 
-        self.scene.deserialize(history_stamp['snapshot'])
+            for edge_id in history_stamp['selection']['edges']:
+                for edge in self.scene.edges:
+                    if edge.id == edge_id:
+                        edge.gr_edge.setSelected(True)
+                        break
 
-        for edge_id in history_stamp['selection']['edges']:
-            for edge in self.scene.edges:
-                if edge.id == edge_id:
-                    edge.gr_edge.setSelected(True)
-                    break
-
-        for node_id in history_stamp['selection']['nodes']:
-            for node in self.scene.nodes:
-                if node.id == node_id:
-                    node.gr_node.setSelected(True)
-                    break
+            for node_id in history_stamp['selection']['nodes']:
+                for node in self.scene.nodes:
+                    if node.id == node_id:
+                        node.gr_node.setSelected(True)
+                        break
 
     def __del__(self):
         log.debug("delete history helper")
