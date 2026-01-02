@@ -129,13 +129,12 @@ class Scene(Serializable):
 
     @has_been_modified.setter
     def has_been_modified(self, value: bool) -> None:
-        # TODO: modified -> unmodified: callbacks are not called
-        if not self._has_been_modified and value:
-            self._has_been_modified = True
+        # NOTE: for modified -> unmodified state callbacks are also called
+        if self._has_been_modified != value:
+            self._has_been_modified = value
             for callback_ref in self._has_been_modified_listeners:
                 if callback := callback_ref():
                     callback()
-        self._has_been_modified = value
 
     def add_has_been_modified_listener(self, callback: Callable[[], None]) -> None:
         """

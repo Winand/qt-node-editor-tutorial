@@ -36,6 +36,7 @@ class SceneHistory:
         "Initialize history stack."
         self.history_stack: list[HistoryStamp] = []
         self.history_current_step = -1
+        self._history_modified_step: int | None = None
 
     def store_initial_history_stamp(self) -> None:
         self.store_history("Initial history stamp", modified=False)
@@ -52,13 +53,13 @@ class SceneHistory:
         log.debug("UNDO")
         if self.can_undo():
             self.history_current_step -= 1
-            self.restore_history()
+            self._restore_history()
 
     def redo(self):
         log.debug("REDO")
         if self.can_redo():
             self.history_current_step += 1
-            self.restore_history()
+            self._restore_history()
 
     def add_history_modified_listener(self, callback: Callable[[], None]) -> None:
         """
@@ -69,18 +70,19 @@ class SceneHistory:
         """
         self._history_modified_listeners.append(ref(callback))
 
-    def restore_history(self) -> None:
+    def _restore_history(self) -> None:
         "Update the scene with the history stamp at current step."
         log.debug("Restoring history .... current_step @%d (%d)",
                   self.history_current_step, len(self.history_stack))
         self.restore_history_stamp(self.history_stack[self.history_current_step])
-        self.scene.has_been_modified = self.history_current_step > 0
+        self.scene.has_been_modified = self._history_modified_step is not None and \
+            self.history_current_step >= self._history_modified_step
         for callback_ref in self._history_modified_listeners:
             if callback := callback_ref():
                 callback()
 
     def store_history(self, desc: str, *, modified: bool):
-        self.scene.has_been_modified = modified
+        self.scene.has_been_modified = self.scene.has_been_modified or modified
         hs = self.create_history_stamp(desc)
         if self.history_stack:  # @Winand
             hcs = self.history_stack[self.history_current_step]
@@ -93,14 +95,21 @@ class SceneHistory:
         if self.history_current_step + 1 < len(self.history_stack):
             # history cursor is not at the end: destroy history steps to the right
             self.history_stack = self.history_stack[:self.history_current_step + 1]
+            if self._history_modified_step is not None and \
+                    self._history_modified_step > len(self.history_stack) - 1:
+                self._history_modified_step = None
 
         if self.history_current_step + 1 >= self.history_limit:
             # history is full, remove the oldest item
             self.history_stack = self.history_stack[1:]  # FIXME: pop?
             self.history_current_step -= 1
+            if self._history_modified_step is not None:
+                self._history_modified_step = max(0, self._history_modified_step - 1)
 
         self.history_stack.append(hs)
         self.history_current_step += 1
+        if modified and self._history_modified_step is None:
+            self._history_modified_step = self.history_current_step
         log.debug("  -- setting step to: %d", self.history_current_step)
 
         # always trigger history modified callbacks (i.e. to update Edit menu)
