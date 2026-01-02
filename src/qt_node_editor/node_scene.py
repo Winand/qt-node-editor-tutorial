@@ -251,3 +251,6 @@ class Scene(Serializable):
             Edge(self).deserialize(edge_data, hashmap, restore_id)
 
         return True
+
+    def __del__(self) -> None:
+        log.debug("delete scene")

@@ -155,3 +155,9 @@ class NodeEditorWidget(QWidget):
         line = cast(QGraphicsLineItem,
                     self.scene.gr_scene.addLine(-200, -200, 400, -100, outline_pen))
         line.setFlag(GraphicsItemFlag.ItemIsMovable | GraphicsItemFlag.ItemIsSelectable)
+
+    def __del__(self) -> None:
+        log.debug("delete editor widget")
+        # import gc
+        # from PyQt6.QtCore import QTimer
+        # QTimer.singleShot(0, gc.collect)

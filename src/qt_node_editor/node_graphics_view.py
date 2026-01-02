@@ -447,3 +447,6 @@ class QDMGraphicsView(QGraphicsView):
         #     super().mouseReleaseEvent(new_event)
         # else:
         #     raise ValueError(f"Event {event_type} not supported")
+
+    def __del__(self) -> None:
+        log.debug("delete graphics view")

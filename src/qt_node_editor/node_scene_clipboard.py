@@ -100,3 +100,6 @@ class SceneClipboard:
 
         self.scene.history.store_history("Pasted elements into the scene",
                                          modified=True)
+
+    def __del__(self):
+        log.debug("delete clipboard helper")

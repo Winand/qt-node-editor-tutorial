@@ -143,3 +143,6 @@ class SceneHistory:
                 if node.id == node_id:
                     node.gr_node.setSelected(True)
                     break
+
+    def __del__(self):
+        log.debug("delete history helper")

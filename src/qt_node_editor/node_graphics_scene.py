@@ -1,3 +1,4 @@
+import logging
 import math
 
 # https://adamj.eu/tech/2021/05/13/python-type-hints-how-to-fix-circular-imports/
@@ -12,6 +13,8 @@ if TYPE_CHECKING:
     from qtpy.QtWidgets import QGraphicsSceneDragDropEvent
 
     from qt_node_editor.node_scene import Scene
+
+log = logging.getLogger(__name__)
 
 
 class QDMGraphicsScene(QGraphicsScene):
@@ -88,3 +91,6 @@ class QDMGraphicsScene(QGraphicsScene):
                 painter.drawLines(*lines_dark)
             else:
                 painter.drawLines(lines_dark)
+
+    def __del__(self):
+        log.debug("delete graphics scene")
