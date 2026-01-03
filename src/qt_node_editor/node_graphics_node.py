@@ -115,6 +115,8 @@ class QDMGraphicsNode(QGraphicsItem):
         Initialize font and color of a node title.
         """
         self.title_item = QGraphicsTextItem(self)
+        # self.title_item.node = self.node  # https://gitlab.com/pavel.krupala/pyqt-node-editor/-/blob/master/nodeeditor/node_graphics_node.py?ref_type=heads#L172
+        self.title_item.setObjectName("title")  # identify on click
         # self.title_item.setTextInteractionFlags(Qt.TextInteractionFlag.TextEditorInteraction)
         self.title_item.setDefaultTextColor(self._title_color)
         self.title_item.setFont(self._title_font)

@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import override
 
 from calc_conf import Opcode
+from qtpy.QtGui import QIcon
 from qtpy.QtWidgets import QLabel
 
 from qt_node_editor.node_content_widget import QDMContentWidget
@@ -63,6 +64,11 @@ class CalcNode(Node):
         super().init_settings()
         self.input_socket_position = Pos.LEFT_CENTER
         self.output_socket_position = Pos.RIGHT_CENTER
+
+    @classmethod
+    def get_icon(cls) -> QIcon:
+        "Get an icon for the node, may be empty icon."
+        return QIcon(str(Path(__file__).parent / cls.icon) if cls.icon else ".")
 
     @override
     def serialize(self) -> CalcNodeSerialize:

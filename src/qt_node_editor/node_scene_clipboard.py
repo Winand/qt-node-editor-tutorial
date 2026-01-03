@@ -1,15 +1,13 @@
 # TODO: use DI or Protocol? https://gemini.google.com/app/d3cef879926b87b8
 import logging
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 from qt_node_editor.node_edge import Edge
 from qt_node_editor.node_graphics_edge import QDMGraphicsEdge
 from qt_node_editor.node_graphics_node import QDMGraphicsNode
-from qt_node_editor.node_node import Node
 
 if TYPE_CHECKING:
     from qt_node_editor.node_edge import EdgeSerialize
-    from qt_node_editor.node_graphics_view import QDMGraphicsView
     from qt_node_editor.node_node import NodeSerialize
     from qt_node_editor.node_scene import Scene, SceneSerialize
     from qt_node_editor.node_serializable import SerializableMap
@@ -57,16 +55,14 @@ class SceneClipboard:
             'edges': edges_final
         }
         if delete:  # delete on cut action
-            view = cast('QDMGraphicsView', self.scene.gr_scene.views()[0])
-            view.delete_selected()
+            self.scene.get_view().delete_selected()
             self.scene.history.store_history("Cut out elements from scene",
                                              modified=True)
         return data
 
     def deserialize_from_clipboard(self, data: "SceneSerialize"):
         hashmap: SerializableMap = {}
-        view = cast('QDMGraphicsView', self.scene.gr_scene.views()[0])
-        mouse_scene_pos = view.last_scene_mouse_position
+        mouse_scene_pos = self.scene.get_view().last_scene_mouse_position
         # TODO: rework bounding box calculation
         # see comment https://www.youtube.com/watch?v=PdqCogmBeXI&lc=UgwvzoSf2dfez6JDf4R4AaABAg
         # graphical node width should be taken into account too

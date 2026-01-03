@@ -16,6 +16,7 @@ from typing import (
     override,
 )
 
+from qtpy.QtCore import QPoint
 from qtpy.QtGui import QDragEnterEvent, QDropEvent
 from qtpy.QtWidgets import QGraphicsItem
 from typedload.dataloader import Loader, _typeddictload
@@ -208,12 +209,10 @@ class Scene(Serializable):
 
     def add_drag_enter_listener(self, callback: Callable[[QDragEnterEvent], None],
                                 ) -> None:
-        for view in self.gr_scene.views():
-            cast("QDMGraphicsView", view).add_drag_enter_listener(callback)
+        self.get_view().add_drag_enter_listener(callback)
 
     def add_drop_listener(self, callback: Callable[[QDropEvent], None]) -> None:
-        for view in self.gr_scene.views():
-            cast("QDMGraphicsView", view).add_drop_listener(callback)
+        self.get_view().add_drop_listener(callback)
 
     # # custom flag to detect node or edge has been selected....
     # def reset_last_selected_states(self) -> None:
@@ -221,6 +220,13 @@ class Scene(Serializable):
     #         node.gr_node._last_selected_state = False
     #     for edge in self.edges:
     #         edge.gr_edge._last_selected_state = False
+
+    def get_view(self) -> "QDMGraphicsView":  # TODO: support multiple views
+        "Get first view of the graphics scene."
+        return cast('QDMGraphicsView', self.gr_scene.views()[0])
+
+    def get_item_at(self, pos: QPoint) -> QGraphicsItem | None:
+        return self.get_view().itemAt(pos)
 
     def add_node(self, node: "Node"):
         self.nodes.append(node)

@@ -9,7 +9,6 @@ from qtpy.QtGui import QAction, QCloseEvent, QGuiApplication, QKeySequence
 from qtpy.QtWidgets import QApplication, QFileDialog, QLabel, QMainWindow, QMessageBox
 
 from qt_node_editor.node_editor_widget import NodeEditorWidget
-from qt_node_editor.node_graphics_view import QDMGraphicsView
 from qt_node_editor.node_scene import SceneSerialize
 from qt_node_editor.utils import As, some
 
@@ -209,8 +208,7 @@ class NodeEditorWindow(QMainWindow):
 
     def on_edit_delete(self):
         if editor := self.current_nodeeditor_widget():
-            view = editor.scene.gr_scene.views()[0] @As(QDMGraphicsView)
-            view.delete_selected()
+            editor.scene.get_view().delete_selected()
 
     def on_edit_cut(self):
         if editor := self.current_nodeeditor_widget():
