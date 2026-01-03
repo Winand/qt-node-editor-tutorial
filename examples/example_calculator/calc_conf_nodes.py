@@ -6,8 +6,12 @@ from calc_node_base import CalcGraphicsNode, CalcNode
 from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QLabel, QLineEdit
 
-from qt_node_editor.node_content_widget import QDMContentWidget
+from qt_node_editor.node_content_widget import (
+    ContentSerialize,
+    QDMContentWidget,
+)
 from qt_node_editor.node_scene import Scene
+from qt_node_editor.node_serializable import SerializableMap
 
 
 @register_node
@@ -51,6 +55,7 @@ class CalcNodeDivide(CalcNode):
 @register_node
 class CalcNodeInput(CalcNode):
     "Input data node."
+    content: "CalcInputContent"
     icon = Path("icons/in.png")
     opcode = Opcode.Input
     optitle = "Input"
@@ -65,6 +70,10 @@ class CalcNodeInput(CalcNode):
         self.content = CalcInputContent(self)  # FIXME: no parent?
         self.gr_node = CalcGraphicsNode(self)  # FIXME: no parent?
 
+class InputContentSerialize(ContentSerialize):
+    "Content serialization structure extended for the Input node."
+    value: str
+
 class CalcInputContent(QDMContentWidget[CalcNodeInput]):
     "Content widget for CalcNodeInput node."
     @override
@@ -73,10 +82,22 @@ class CalcInputContent(QDMContentWidget[CalcNodeInput]):
         edit.setAlignment(Qt.AlignmentFlag.AlignRight)
         edit.setObjectName(self.node.content_label_objname)
 
+    @override
+    def serialize(self) -> InputContentSerialize:
+        return {**super().serialize(), "value": self.edit.text()}
+
+    @override
+    def deserialize(self, data: InputContentSerialize, hashmap: SerializableMap,  # pyright: ignore[reportIncompatibleMethodOverride]
+                    ) -> bool:
+        res = super().deserialize(data, hashmap)
+        self.edit.setText(data["value"])
+        return res
+
 
 @register_node
 class CalcNodeOutput(CalcNode):
     "Output node."
+    content: "CalcOutputContent"
     icon = Path("icons/out.png")
     opcode = Opcode.Output
     optitle = "Output"

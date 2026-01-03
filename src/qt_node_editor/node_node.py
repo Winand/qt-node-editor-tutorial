@@ -2,11 +2,15 @@
 Node
 """
 import logging
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, TypedDict, override
 
 from qt_node_editor.node_content_widget import ContentSerialize, QDMContentWidget
 from qt_node_editor.node_graphics_node import QDMGraphicsNode
-from qt_node_editor.node_serializable import Serializable, SerializableID
+from qt_node_editor.node_serializable import (
+    Serializable,
+    SerializableID,
+    SerializableMap,
+)
 from qt_node_editor.node_socket import Pos, Socket, SocketSerialize
 
 if TYPE_CHECKING:
@@ -25,6 +29,8 @@ class NodeSerialize(TypedDict):
 
 
 class Node(Serializable):
+    content: QDMContentWidget
+
     def __init__(self, scene: "Scene", title: str = "Undefined Node",
                  inputs: list[int] | None = None,
                  outputs: list[int] | None = None) -> None:
@@ -137,6 +143,7 @@ class Node(Serializable):
         self.scene.remove_node(self)
         log.debug(" - everything was done.")
 
+    @override
     def serialize(self) -> NodeSerialize:
         scene_pos = self.gr_node.scenePos()
         inputs = [i.serialize() for i in self.inputs]
@@ -151,7 +158,9 @@ class Node(Serializable):
             "content": self.content.serialize()
         }
 
-    def deserialize(self, data: NodeSerialize, hashmap: dict, restore_id=True):
+    @override
+    def deserialize(self, data: NodeSerialize, hashmap: SerializableMap,
+                    restore_id: bool = True) -> bool:
         # FIXME: use some kind of a fixed structure instead of a dict?
         if restore_id:
             self.id = data["id"]
@@ -183,4 +192,4 @@ class Node(Serializable):
             new_socket.deserialize(socket_data, hashmap, restore_id)
             self.outputs.append(new_socket)
 
-        return True
+        return self.content.deserialize(data["content"], hashmap)

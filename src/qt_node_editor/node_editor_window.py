@@ -4,7 +4,6 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import override
 
-import typedload
 from qtpy.QtCore import QPoint, QSettings, QSize
 from qtpy.QtGui import QAction, QCloseEvent, QGuiApplication, QKeySequence
 from qtpy.QtWidgets import QApplication, QFileDialog, QLabel, QMainWindow, QMessageBox
@@ -237,7 +236,7 @@ class NodeEditorWindow(QMainWindow):
             return
 
         try:
-            data = typedload.load(json_data, SceneSerialize)
+            data = editor.scene.validator.load(json_data, SceneSerialize)
         except (ValueError, TypeError) as e:
             log.error("JSON is not a valid scene: %s", e)
             return

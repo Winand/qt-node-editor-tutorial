@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 from typing import override
 
@@ -6,9 +7,17 @@ from qtpy.QtWidgets import QLabel
 
 from qt_node_editor.node_content_widget import QDMContentWidget
 from qt_node_editor.node_graphics_node import QDMGraphicsNode
-from qt_node_editor.node_node import Node
+from qt_node_editor.node_node import Node, NodeSerialize
 from qt_node_editor.node_scene import Scene
+from qt_node_editor.node_serializable import SerializableMap
 from qt_node_editor.node_socket import Pos
+
+log = logging.getLogger(__name__)
+
+
+class CalcNodeSerialize(NodeSerialize):
+    "Node serialization structure extended for CalcNode."
+    opcode: Opcode
 
 
 class CalcGraphicsNode(QDMGraphicsNode):
@@ -54,3 +63,14 @@ class CalcNode(Node):
         super().init_settings()
         self.input_socket_position = Pos.LEFT_CENTER
         self.output_socket_position = Pos.RIGHT_CENTER
+
+    @override
+    def serialize(self) -> CalcNodeSerialize:
+        return {**super().serialize(), "opcode": self.opcode}
+
+    @override
+    def deserialize(self, data: CalcNodeSerialize, hashmap: SerializableMap,  # pyright: ignore[reportIncompatibleMethodOverride]
+                    restore_id: bool = True) -> bool:
+        res = super().deserialize(data, hashmap, restore_id)
+        log.debug("Deserialized CalcNode '%s', res:%s", self.__class__.__name__, res)
+        return res

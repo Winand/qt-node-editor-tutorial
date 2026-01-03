@@ -1,14 +1,16 @@
 import logging
 from collections.abc import Callable
-from typing import TYPE_CHECKING, override
+from typing import TYPE_CHECKING, cast, override
 
-from calc_conf import MIMETYPE_LISTBOX, Opcode, get_class_from_opcode
+from calc_conf import CALC_NODES, MIMETYPE_LISTBOX, Opcode, get_class_from_opcode
+from calc_node_base import CalcNode, CalcNodeSerialize
 from qtpy.QtCore import Qt
 from qtpy.QtGui import QCloseEvent, QDragEnterEvent, QDropEvent, QPixmap
 from qtpy.QtWidgets import QWidget
 from util_datastream import from_bytearray
 
 from qt_node_editor.node_editor_widget import NodeEditorWidget
+from qt_node_editor.node_node import NodeSerialize
 from qt_node_editor.utils import ref, some
 
 if TYPE_CHECKING:
@@ -29,8 +31,16 @@ class CalculatorSubWindow(NodeEditorWidget):
         self.scene.add_has_been_modified_listener(self.set_title)
         self.scene.add_drag_enter_listener(self.on_drag_enter)
         self.scene.add_drop_listener(self.on_drop)
+        self.scene.set_node_class_selector(self.get_node_type)
 
         self._close_event_listeners: list[ReferenceType[CloseEventCallback]] = []
+
+    def get_node_type(self, data: NodeSerialize) -> type[CalcNode] | None:
+        "Retrieve custom node class from serialized node."
+        data = cast(CalcNodeSerialize, data)
+        if "opcode" in data:
+            return CALC_NODES[data["opcode"]]
+        return None
 
     def set_title(self):
         self.setWindowTitle(self.get_user_friendly_filename())

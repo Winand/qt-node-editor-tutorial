@@ -3,11 +3,17 @@ Edge between nodes
 """
 import logging
 from enum import Enum, auto
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, TypedDict, cast
 
-from qt_node_editor.node_graphics_edge import (QDMGraphicsEdgeBezier,
-                                               QDMGraphicsEdgeDirect)
-from qt_node_editor.node_serializable import Serializable, SerializableID
+from qt_node_editor.node_graphics_edge import (
+    QDMGraphicsEdgeBezier,
+    QDMGraphicsEdgeDirect,
+)
+from qt_node_editor.node_serializable import (
+    Serializable,
+    SerializableID,
+    SerializableMap,
+)
 from qt_node_editor.node_socket import Socket
 
 if TYPE_CHECKING:
@@ -22,8 +28,8 @@ class EdgeType(int, Enum):
 class EdgeSerialize(TypedDict):
     id: SerializableID
     edge_type: EdgeType
-    start: int | None
-    end: int | None
+    start: SerializableID | None
+    end: SerializableID | None
 
 log = logging.getLogger(__name__)
 
@@ -148,11 +154,13 @@ class Edge(Serializable):
             "end": self.end_socket.id if self.end_socket else None
         }
 
-    def deserialize(self, data: EdgeSerialize, hashmap: dict = {},
-                    restore_id=True):
+    def deserialize(self, data: EdgeSerialize, hashmap: SerializableMap,
+                    restore_id: bool = True) -> bool:
         if restore_id:
             self.id = data["id"]
-        self.start_socket = hashmap[data["start"]]
-        self.end_socket = hashmap[data["end"]]
+        assert data["start"]
+        self.start_socket = cast(Socket, hashmap[data["start"]])
+        assert data["end"]
+        self.end_socket = cast(Socket, hashmap[data["end"]])
         self.edge_type = data["edge_type"]
         return True

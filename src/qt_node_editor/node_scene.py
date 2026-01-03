@@ -6,19 +6,33 @@ import logging
 from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, NotRequired, TypedDict, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    NotRequired,
+    TypedDict,
+    cast,
+    get_type_hints,
+    override,
+)
 
-import typedload
 from qtpy.QtGui import QDragEnterEvent, QDropEvent
 from qtpy.QtWidgets import QGraphicsItem
+from typedload.dataloader import Loader, _typeddictload
 from typedload.exceptions import TypedloadException
+from typedload.typechecks import is_typeddict
 
+from qt_node_editor.node_content_widget import ContentSerialize
 from qt_node_editor.node_edge import Edge, EdgeSerialize
 from qt_node_editor.node_graphics_scene import QDMGraphicsScene
 from qt_node_editor.node_node import Node, NodeSerialize
 from qt_node_editor.node_scene_clipboard import SceneClipboard
 from qt_node_editor.node_scene_history import SceneHistory
-from qt_node_editor.node_serializable import Serializable, SerializableID
+from qt_node_editor.node_serializable import (
+    Serializable,
+    SerializableID,
+    SerializableMap,
+)
 from qt_node_editor.utils import ref
 
 if TYPE_CHECKING:
@@ -56,7 +70,11 @@ class Scene(Serializable):
         self._item_selected_listeners: list[ReferenceType[Callable[[], None]]] = []
         self._items_deselected_listeners: list[ReferenceType[Callable[[], None]]] = []
 
+        self.node_class_selector: Callable[[NodeSerialize], type[Node] | None] \
+            = lambda _data: Node
+
         self.init_ui()
+        self.init_validator()
         self.history = SceneHistory(self)
         self.clipboard = SceneClipboard(self)
 
@@ -68,6 +86,31 @@ class Scene(Serializable):
     def init_ui(self):
         self.gr_scene = QDMGraphicsScene(self)  # TODO: graphics scene has no parent
         self.gr_scene.set_rect(self.scene_width, self.scene_height)
+
+    def init_validator(self) -> None:
+        "Support custom node types using a custom handler and type hints."
+        self.validator = Loader()
+        last_node_type: type[Node]  # store node type to get right content type
+
+        def node_handler(_loader: Loader, value: Any, _type: type) -> Any:
+            try:
+                if _type is NodeSerialize:
+                    # get concrete structure from NodeSerialize.serialize return type
+                    nonlocal last_node_type
+                    last_node_type = self.get_node_type(value)
+                    _type = get_type_hints(last_node_type.serialize)["return"]
+                if _type is ContentSerialize:
+                    # get concrete structure from NodeSerialize.content.serialize
+                    content_type = get_type_hints(last_node_type)["content"]
+                    _type = get_type_hints(content_type.serialize)["return"]
+            except Exception as e:
+                msg = f"Cannot get serializaton type for {value}"
+                raise TypedloadException(msg) from e
+            return _typeddictload(_loader, value, _type)
+
+        self.validator.handlers[
+            self.validator.handlers.index((is_typeddict, _typeddictload))
+        ] = (is_typeddict, node_handler)
 
     # def on_item_selected(self) -> None:
     #     print("SCENE:: ~on_item_selected")
@@ -215,7 +258,7 @@ class Scene(Serializable):
         "Load scene from file."
         try:
             with filename.open(encoding="utf-8") as file:
-                data = typedload.load(json.load(file), SceneSerialize)
+                data = self.validator.load(json.load(file), SceneSerialize)
         except json.JSONDecodeError as e:
             msg = f"{filename.name} is not a valid JSON file"
             raise InvalidSceneFileError(msg) from e
@@ -225,6 +268,16 @@ class Scene(Serializable):
         self.deserialize(data)
         self.has_been_modified = False
 
+    def set_node_class_selector(
+            self, selector: Callable[[NodeSerialize], type[Node] | None]) -> None:
+        "Set node class retrieval function from serialized data. Default: data -> Node."
+        self.node_class_selector = selector
+
+    def get_node_type(self, data: NodeSerialize) -> type[Node]:
+        "Retrieve node class from serialized node. Default: Node."
+        return self.node_class_selector(data) or Node
+
+    @override
     def serialize(self) -> SceneSerialize:
         nodes = [n.serialize() for n in self.nodes]
         edges = [e.serialize() for e in self.edges]
@@ -236,15 +289,17 @@ class Scene(Serializable):
             "edges": edges
         }
 
-    def deserialize(self, data: SceneSerialize, hashmap: dict | None = None,
-                    restore_id=True):
+    @override
+    def deserialize(self, data: SceneSerialize, hashmap: SerializableMap | None = None,
+                    restore_id: bool = True) -> bool:
         self.clear()
         hashmap = {}
         if restore_id:  # avoid id collisions when copying items
             self.id = data["id"]
 
         for node_data in data["nodes"]:
-            Node(self).deserialize(node_data, hashmap, restore_id)
+            node_type = self.get_node_type(node_data)
+            node_type(self).deserialize(node_data, hashmap, restore_id)
 
         for edge_data in data["edges"]:
             Edge(self).deserialize(edge_data, hashmap, restore_id)

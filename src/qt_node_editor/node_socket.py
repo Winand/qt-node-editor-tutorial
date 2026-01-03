@@ -3,10 +3,14 @@ Socket
 """
 import logging
 from enum import Enum, auto
-from typing import TYPE_CHECKING, NotRequired, TypedDict
+from typing import TYPE_CHECKING, NotRequired, TypedDict, override
 
 from qt_node_editor.node_graphics_socket import QDMGraphicsSocket
-from qt_node_editor.node_serializable import Serializable, SerializableID
+from qt_node_editor.node_serializable import (
+    Serializable,
+    SerializableID,
+    SerializableMap,
+)
 
 if TYPE_CHECKING:
     from qt_node_editor.node_edge import Edge
@@ -92,6 +96,7 @@ class Socket(Serializable):
         )
 
 
+    @override
     def serialize(self) -> SocketSerialize:
         return {
             "id": self.id,
@@ -101,8 +106,9 @@ class Socket(Serializable):
             "socket_type": self.socket_type,
         }
 
-    def deserialize(self, data: SocketSerialize, hashmap: dict = {},
-                    restore_id=True):
+    @override
+    def deserialize(self, data: SocketSerialize, hashmap: SerializableMap,
+                    restore_id: bool = True) -> bool:
         if restore_id:
             self.id = data["id"]
         self.is_multi_edges = self.determine_multi_edges(data)  # TODO: in __init__? https://youtu.be/sKzNjQb3eWA?t=268

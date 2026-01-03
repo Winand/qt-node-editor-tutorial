@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from qt_node_editor.node_graphics_view import QDMGraphicsView
     from qt_node_editor.node_node import NodeSerialize
     from qt_node_editor.node_scene import Scene, SceneSerialize
+    from qt_node_editor.node_serializable import SerializableMap
     from qt_node_editor.node_socket import Socket
 
 log = logging.getLogger(__name__)
@@ -63,7 +64,7 @@ class SceneClipboard:
         return data
 
     def deserialize_from_clipboard(self, data: "SceneSerialize"):
-        hashmap = {}
+        hashmap: SerializableMap = {}
         view = cast('QDMGraphicsView', self.scene.gr_scene.views()[0])
         mouse_scene_pos = view.last_scene_mouse_position
         # TODO: rework bounding box calculation
@@ -86,7 +87,7 @@ class SceneClipboard:
         offset_y = mouse_scene_pos.y() - bbox_center_y
 
         for node_data in data["nodes"]:
-            new_node = Node(self.scene)
+            new_node = self.scene.get_node_type(node_data)(self.scene)
             new_node.deserialize(node_data, hashmap, restore_id=False)
             # new_node.gr_node.setSelected(True)  # @Winand: deselect prev. sel. first
 

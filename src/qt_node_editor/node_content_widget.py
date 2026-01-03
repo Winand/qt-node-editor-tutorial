@@ -2,12 +2,12 @@
 Content of a node (widgets)
 """
 import logging
-from typing import TYPE_CHECKING, TypedDict, cast
+from typing import TYPE_CHECKING, TypedDict, cast, override
 
 from qtpy.QtGui import QFocusEvent
 from qtpy.QtWidgets import QLabel, QTextEdit, QVBoxLayout, QWidget
 
-from qt_node_editor.node_serializable import Serializable
+from qt_node_editor.node_serializable import Serializable, SerializableMap
 
 if TYPE_CHECKING:
     from qt_node_editor.node_graphics_view import QDMGraphicsView
@@ -40,13 +40,15 @@ class QDMContentWidget[N: "Node"](QWidget, Serializable):
         view = cast("QDMGraphicsView", self.node.scene.gr_scene.views()[0])
         view.editing_flag = value
 
+    @override
     def serialize(self) -> ContentSerialize:
         return {
 
         }
 
-    def deserialize(self, data: ContentSerialize, hashmap: dict = {}):
-        return False
+    @override
+    def deserialize(self, data: ContentSerialize, hashmap: SerializableMap) -> bool:
+        return True
 
 
 class QDMTextEdit(QTextEdit):
