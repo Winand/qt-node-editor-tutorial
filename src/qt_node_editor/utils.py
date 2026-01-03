@@ -1,7 +1,7 @@
 import logging
 import pkgutil
 import weakref
-from collections.abc import Callable
+from collections.abc import Callable, Generator
 from pathlib import Path
 from types import MethodType
 from typing import Any, Generic, Type, TypeVar, cast
@@ -50,6 +50,35 @@ def ref[C](func: C) -> weakref.ReferenceType[C]:
         msg = "Lambda functions are not supported in this context"
         raise ValueError(msg)
     return weakref.ref(func)
+
+
+def get_cause(exc: BaseException | None) -> BaseException | None:
+    """
+    Get an exception cause from __cause__ or __context__ field.
+
+    Supports suppressing causes with `raise ... from None` syntax.
+    """
+    if not exc:
+        return None
+    if cause := exc.__cause__:
+        return cause
+    if not exc.__suppress_context__:
+        return exc.__context__
+    return None
+
+def exception_chain(exc: BaseException) -> Generator[BaseException, Any, None]:
+    "Iterate through an exception and all of its causes."
+    yield exc
+    _exc = exc
+    while _exc := get_cause(_exc):
+        yield _exc
+
+def format_exception_chain(exc: Exception, indent: str = '  ') -> str:
+    "Return representation of an exception and all of its causes."
+    return "\n".join(
+        f"{indent * level}{exception!r}"
+        for level, exception in enumerate(exception_chain(exc))
+    )
 
 
 def _load_stylesheet(filename: Path) -> str:

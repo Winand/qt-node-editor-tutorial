@@ -22,6 +22,7 @@ from qt_node_editor.node_edge import Edge, EdgeType
 from qt_node_editor.node_graphics_view import QDMGraphicsView
 from qt_node_editor.node_node import Node
 from qt_node_editor.node_scene import InvalidSceneFileError, Scene
+from qt_node_editor.utils import format_exception_chain
 
 GraphicsItemFlag = QGraphicsItem.GraphicsItemFlag
 log = logging.getLogger(__name__)
@@ -88,8 +89,9 @@ class NodeEditorWidget(QWidget):
             self.scene.load_from_file(filename)
         except InvalidSceneFileError as e:
             QApplication.restoreOverrideCursor()
-            cause = f"{e}:\n{e.__cause__ or "Unknown cause"}"
-            QMessageBox.warning(self, f"Error loading {filename.name}", cause)
+            QMessageBox.warning(
+                self, f"Error loading {filename.name}", format_exception_chain(e),
+            )
             return False
         self.filename = filename
         self.scene.history.clear()
