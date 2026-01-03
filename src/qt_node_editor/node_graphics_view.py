@@ -133,6 +133,9 @@ class QDMGraphicsView(QGraphicsView):
         # https://doc.qt.io/qt-6/qmouseevent-obsolete.html
         # event.modifiers - Ctrl, Shift, etc.
         # TODO: mouseReleaseEvent is not needed?
+        if self.itemAt(event.pos()):  # if *not* clicked on an empty space
+            super().mousePressEvent(event)
+            return
         release_event = QMouseEvent(QEvent.Type.MouseButtonRelease,
                                     event.position(), event.globalPosition(),
                                     Qt.MouseButton.RightButton,
