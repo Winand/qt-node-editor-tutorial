@@ -45,3 +45,5 @@ def get_class_from_opcode(opcode: Opcode) -> type["CalcNode"]:
         msg = f"Opcode {opcode} not registered"
         raise OpcodeNotRegisteredError(msg)
     return CALC_NODES[opcode]
+
+from nodes import *  # noqa: E402, F403 register nodes

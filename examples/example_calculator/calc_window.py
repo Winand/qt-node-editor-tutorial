@@ -4,7 +4,6 @@ from functools import partial
 from pathlib import Path
 from typing import cast, override
 
-import calc_conf_nodes  # noqa: F401 register node types
 import qss.nodeeditor_dark_resources  # noqa: F401 images for the dark skin
 from calc_conf import CALC_NODES
 from calc_drag_listbox import QDMDragListbox
