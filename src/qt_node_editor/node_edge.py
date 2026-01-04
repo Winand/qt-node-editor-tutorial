@@ -9,6 +9,7 @@ from qt_node_editor.node_graphics_edge import (
     QDMGraphicsEdgeBezier,
     QDMGraphicsEdgeDirect,
 )
+from qt_node_editor.node_node import Node
 from qt_node_editor.node_serializable import (
     Serializable,
     SerializableID,
@@ -55,6 +56,13 @@ class Edge(Serializable):
         end_sock = hex(id(self.end_socket))[-3:] if self.end_socket else None
         return (f"<Edge ..{hex(id(self))[-5:]} "
                 f"(sockets {start_sock} <--> {end_sock})>")
+
+    def get_connected_node(self, socket: Socket) -> Node | None:
+        "Get a node on the other end of the edge."
+        if other_socket := self.start_socket if socket == self.end_socket else \
+                           self.end_socket:
+            return other_socket.node
+        return None
 
     @property
     def start_socket(self) -> Socket | None:

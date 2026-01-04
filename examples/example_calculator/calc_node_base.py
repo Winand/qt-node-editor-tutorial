@@ -3,8 +3,9 @@ from pathlib import Path
 from typing import override
 
 from calc_conf import Opcode
-from qtpy.QtGui import QIcon
-from qtpy.QtWidgets import QLabel
+from qtpy.QtCore import QPointF, QRectF
+from qtpy.QtGui import QIcon, QImage, QPainter
+from qtpy.QtWidgets import QLabel, QStyleOptionGraphicsItem, QWidget
 
 from qt_node_editor.node_content_widget import QDMContentWidget
 from qt_node_editor.node_graphics_node import QDMGraphicsNode
@@ -30,6 +31,23 @@ class CalcGraphicsNode(QDMGraphicsNode):
         self.edge_roundness = 6.0
         self.edge_padding = 0.0
         self.title_horizontal_padding = 8.0
+
+    @override
+    def init_assets(self) -> None:
+        super().init_assets()
+        self.icons = QImage(str(Path(__file__).parent / "icons/status_icons.png"))
+
+    @override
+    def paint(self, painter: QPainter, option: QStyleOptionGraphicsItem,  # type: ignore[reportIncompatibleMethodOverride]
+              widget: QWidget | None = None) -> None:
+        super().paint(painter, option, widget)
+
+        offset = 24
+        if self.node.is_invalid():
+            offset = 48
+        elif self.node.is_dirty():
+            offset = 0
+        painter.drawImage(QPointF(-10, -10), self.icons, QRectF(offset, 0, 24, 24))
 
 
 class CalcContent(QDMContentWidget["CalcNode"]):

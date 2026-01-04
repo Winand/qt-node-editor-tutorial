@@ -137,6 +137,7 @@ class CalculatorSubWindow(NodeEditorWidget):
     def handle_node_context_menu(self, event: QContextMenuEvent, node: Node) -> None:
         context_menu = QMenu(self)
         act_mark_dirty = context_menu.addAction("Mark Dirty")
+        act_mark_desc_dirty = context_menu.addAction("Mark Descendants Dirty")
         act_mark_invalid = context_menu.addAction("Mark Invalid")
         act_unmark_invalid = context_menu.addAction("Unmark Invalid")
         act_eval = context_menu.addAction("Eval")
@@ -144,7 +145,18 @@ class CalculatorSubWindow(NodeEditorWidget):
         action = context_menu.exec(self.mapToGlobal(event.pos()))
         if action:
             log.info("Action %s on node %s", action.text(), node.title)
-        # TODO:
+
+        if action == act_mark_dirty:
+           node.mark_dirty()
+        elif action == act_mark_desc_dirty:
+           node.mark_descendants_dirty()
+        elif action == act_mark_invalid:
+           node.mark_invalid()
+        elif action == act_unmark_invalid:
+           node.mark_invalid(unset=True)
+        elif action == act_eval:
+           val = node.eval()
+           log.info("EVALUATED: %s", val)
 
     def handle_edge_context_menu(self, event: QContextMenuEvent, edge: Edge) -> None:
         context_menu = QMenu(self)

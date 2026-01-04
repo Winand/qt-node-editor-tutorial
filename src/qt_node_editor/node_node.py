@@ -2,7 +2,7 @@
 Node
 """
 import logging
-from typing import TYPE_CHECKING, TypedDict, override
+from typing import TYPE_CHECKING, Iterable, TypedDict, override
 
 from qt_node_editor.node_content_widget import ContentSerialize, QDMContentWidget
 from qt_node_editor.node_graphics_node import QDMGraphicsNode
@@ -47,6 +47,10 @@ class Node(Serializable):
         self.inputs: list[Socket] = []
         self.outputs: list[Socket] = []
         self.init_sockets(inputs, outputs)
+
+        # dirty and evaluation
+        self._is_dirty = False
+        self._is_invalid = False
 
     def init_gui_objects(self) -> None:
         self.content = QDMContentWidget(self)
@@ -142,6 +146,68 @@ class Node(Serializable):
         log.debug(" - remove node from the scene")
         self.scene.remove_node(self)
         log.debug(" - everything was done.")
+
+    def is_dirty(self) -> bool:
+        "Check if a node has dirty state."
+        return self._is_dirty
+
+    def mark_dirty(self, *, unset: bool = False) -> None:
+        "Mark or unmark a node to have dirty state."
+        self._is_dirty = not unset
+        if self._is_dirty:
+            self.on_marked_dirty()
+
+    def on_marked_dirty(self): ...
+
+    def mark_children_dirty(self, *, unset: bool = False) -> None:
+        for node in self.get_children_nodes():
+            node.mark_dirty(unset=unset)
+
+    # https://www.youtube.com/watch?v=NgBhr2k5IJs&lc=UgzfobDHlvYrE4YZ2Td4AaABAg.98oD9yaLPE6A2AR5ddgHxY
+    def mark_descendants_dirty(self, *, unset: bool = False) -> None:
+        for node in self.get_children_nodes():
+            node.mark_dirty(unset=unset)
+            node.mark_descendants_dirty(unset=unset)
+
+    def is_invalid(self) -> bool:
+        "Check if a node has invalid state."
+        return self._is_invalid
+
+    def mark_invalid(self, *, unset: bool = False) -> None:
+        "Mark or unmark a node to have invalid state."
+        self._is_invalid = not unset
+        if self._is_invalid:
+            self.on_marked_invalid()
+
+    def on_marked_invalid(self): ...
+
+    def mark_children_invalid(self, *, unset: bool = False) -> None:
+        for node in self.get_children_nodes():
+            node.mark_invalid(unset=unset)
+
+    # https://www.youtube.com/watch?v=NgBhr2k5IJs&lc=UgzfobDHlvYrE4YZ2Td4AaABAg.98oD9yaLPE6A2AR5ddgHxY
+    # FIXME: how to address circular dependencies problem?
+    def mark_descendants_invalid(self, *, unset: bool = False) -> None:
+        for node in self.get_children_nodes():
+            node.mark_invalid(unset=unset)
+            node.mark_descendants_invalid(unset=unset)
+
+    def eval(self):
+        "Evaluate node."
+        self.mark_dirty(unset=True)
+        self.mark_invalid(unset=True)
+        return 0
+
+    def eval_children(self):
+        for node in self.get_children_nodes():
+            node.eval()
+
+    def get_children_nodes(self) -> Iterable["Node"]:
+        "Get nodes connected to the node outputs."
+        return filter(None, (
+            edge.get_connected_node(output)
+            for output in self.outputs for edge in output.edges
+        ))
 
     @override
     def serialize(self) -> NodeSerialize:
