@@ -141,6 +141,7 @@ class Edge(Serializable):
         self.start_socket = None
 
     def remove(self):
+        old_start_socket, old_end_socket = self.start_socket, self.end_socket
         log.debug("# Removing Edge %s", self)
         log.debug(" - remove edge from all sockets")
         self.disconnect_from_sockets()
@@ -151,8 +152,15 @@ class Edge(Serializable):
         try:
             self.scene.remove_edge(self)
         except ValueError:
-            pass  # FIXME: eliminate exception handling here
+            log.exception("Remove edge")  # FIXME: eliminate exception handling here
         log.debug(" - everything is done.")
+
+        if old_start_socket and old_end_socket:  # WA: connected edge (not dragging)
+            # notify nodes from old sockets
+            for socket in (old_start_socket, old_end_socket):
+                socket.node.on_edge_connection_changed(self)
+                if socket.is_input:
+                    socket.node.on_input_data_changed(self)
 
     def serialize(self) -> EdgeSerialize:
         return {

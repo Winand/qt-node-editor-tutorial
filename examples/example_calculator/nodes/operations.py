@@ -1,6 +1,7 @@
 "Operations nodes."
 
 from pathlib import Path
+from typing import override
 
 from calc_conf import Opcode, register_node
 from calc_node_base import CalcNode
@@ -14,6 +15,10 @@ class CalcNodeAdd(CalcNode):
     optitle = "Add"
     content_label = "+"
 
+    @override
+    def eval_operation(self, input1: float, input2: float) -> float:
+        return input1 + input2
+
 
 @register_node
 class CalcNodeSubtract(CalcNode):
@@ -22,6 +27,10 @@ class CalcNodeSubtract(CalcNode):
     opcode = Opcode.Subtract
     optitle = "Subtract"
     content_label = "-"
+
+    @override
+    def eval_operation(self, input1: float, input2: float) -> float:
+        return input1 - input2
 
 
 @register_node
@@ -33,6 +42,10 @@ class CalcNodeMultiply(CalcNode):
     content_label = "*"
     content_label_objname = "calc_node_mul"
 
+    @override
+    def eval_operation(self, input1: float, input2: float) -> float:
+        return input1 * input2
+
 
 @register_node
 class CalcNodeDivide(CalcNode):
@@ -42,3 +55,7 @@ class CalcNodeDivide(CalcNode):
     optitle = "Divide"
     content_label = "/"
     content_label_objname = "calc_node_div"
+
+    @override
+    def eval_operation(self, input1: float, input2: float) -> float:
+        return input1 / input2

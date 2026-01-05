@@ -2,7 +2,8 @@
 Node
 """
 import logging
-from typing import TYPE_CHECKING, Iterable, TypedDict, override
+from collections.abc import Iterable
+from typing import TYPE_CHECKING, Any, TypedDict, override
 
 from qt_node_editor.node_content_widget import ContentSerialize, QDMContentWidget
 from qt_node_editor.node_graphics_node import QDMGraphicsNode
@@ -14,6 +15,7 @@ from qt_node_editor.node_serializable import (
 from qt_node_editor.node_socket import Pos, Socket, SocketSerialize
 
 if TYPE_CHECKING:
+    from qt_node_editor.node_edge import Edge
     from qt_node_editor.node_scene import Scene
 
 log = logging.getLogger(__name__)
@@ -83,6 +85,15 @@ class Node(Serializable):
                             socket_type, multi_edges=self.output_multi_edged,
                             socket_count_on_side=len(outputs), is_input=False)
             self.outputs.append(socket)
+
+    def on_edge_connection_changed(self, edge: "Edge") -> None:
+        log.info("%s::on_edge_connection_changed: %s", self.__class__.__name__, edge)
+
+    def on_input_data_changed(self, edge: "Edge") -> None:
+        "Input connections changed or input user data changed."
+        log.info("%s::on_input_data_changed: %s", self.__class__.__name__, edge)
+        self.mark_dirty()
+        self.mark_descendants_dirty()
 
     def __str__(self):
         return f"<Node ..{hex(id(self))[-5:]} '{self.title}'>"
@@ -192,7 +203,7 @@ class Node(Serializable):
             node.mark_invalid(unset=unset)
             node.mark_descendants_invalid(unset=unset)
 
-    def eval(self):
+    def eval(self) -> Any:
         "Evaluate node."
         self.mark_dirty(unset=True)
         self.mark_invalid(unset=True)
@@ -208,6 +219,27 @@ class Node(Serializable):
             edge.get_connected_node(output)
             for output in self.outputs for edge in output.edges
         ))
+
+    def get_input(self, index: int = 0) -> "Node | None":
+        try:
+            socket = self.inputs[index]
+            edge = socket.edges[0]
+        except IndexError:
+            log.exception("Cannot get input, none is attached to %s:%d", self, index)
+            return None
+        return edge.get_connected_node(socket)
+
+    def get_inputs(self, index: int = 0) -> list["Node"]:
+        socket = self.inputs[index]
+        return list(filter(None, (
+            edge.get_connected_node(socket) for edge in socket.edges
+        )))
+
+    def get_outputs(self, index: int = 0) -> list["Node"]:
+        socket = self.outputs[index]
+        return list(filter(None, (
+            edge.get_connected_node(socket) for edge in socket.edges
+        )))
 
     @override
     def serialize(self) -> NodeSerialize:

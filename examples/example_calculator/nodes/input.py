@@ -1,7 +1,7 @@
 "Data input node."
 
 from pathlib import Path
-from typing import override
+from typing import Any, override
 
 from calc_conf import Opcode, register_node
 from calc_node_base import CalcGraphicsNode, CalcNode
@@ -35,6 +35,16 @@ class CalcNodeInput(CalcNode):
         self.content = CalcInputContent(self)  # FIXME: no parent?
         self.gr_node = CalcGraphicsNode(self)  # FIXME: no parent?
         self.content.edit.textChanged.connect(self.on_input_data_changed)
+
+    @override
+    def eval_impl(self) -> Any:
+        self.value = int(self.content.edit.text())
+        self.mark_dirty(unset=True)
+        self.mark_invalid(unset=True)
+        self.mark_descendants_invalid(unset=True)
+        self.mark_descendants_dirty()
+        self.eval_children()  # FIXME: eval all descendants?
+        return self.value
 
 
 class InputContentSerialize(ContentSerialize):

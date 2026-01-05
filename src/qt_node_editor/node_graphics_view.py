@@ -390,6 +390,12 @@ class QDMGraphicsView(QGraphicsView):
 
             self._scene.history.store_history("Created new edge by dragging",
                                               modified=True)
+
+            for socket in [self.drag_start_socket, item.socket]:
+                socket.node.on_edge_connection_changed(new_edge)
+                if socket.is_input:
+                    socket.node.on_input_data_changed(new_edge)
+
             return True
 
         # Cancel:

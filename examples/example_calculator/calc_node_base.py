@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import override
+from typing import Any, final, override
 
 from calc_conf import Opcode
 from qtpy.QtCore import QPointF, QRectF
@@ -8,6 +8,7 @@ from qtpy.QtGui import QIcon, QImage, QPainter
 from qtpy.QtWidgets import QLabel, QStyleOptionGraphicsItem, QWidget
 
 from qt_node_editor.node_content_widget import QDMContentWidget
+from qt_node_editor.node_edge import Edge
 from qt_node_editor.node_graphics_node import QDMGraphicsNode
 from qt_node_editor.node_node import Node, NodeSerialize
 from qt_node_editor.node_scene import Scene
@@ -71,6 +72,8 @@ class CalcNode(Node):
         inputs = [2, 2] if inputs is None else inputs
         outputs = [1] if outputs is None else outputs
         super().__init__(scene, self.optitle, inputs, outputs)
+        self.value = None
+        self.mark_dirty()
 
     @override
     def init_gui_objects(self) -> None:
@@ -82,6 +85,46 @@ class CalcNode(Node):
         super().init_settings()
         self.input_socket_position = Pos.LEFT_CENTER
         self.output_socket_position = Pos.RIGHT_CENTER
+
+    def eval_operation(self, input1: float, input2: float) -> float:
+        return 123
+
+    def eval_impl(self) -> Any:
+        i1 = self.get_input(0)
+        i2 = self.get_input(1)
+        if not i1 or not i2:
+            msg = "Some inputs not connected"
+            raise ValueError(msg)
+        self.value = self.eval_operation(i1.eval(), i2.eval())
+        self.mark_dirty(unset=True)
+        self.mark_invalid(unset=True)
+        self.mark_descendants_dirty()
+        self.eval_children()  # FIXME: eval all descendants?
+        return self.value
+
+    @final
+    @override
+    def eval(self) -> Any:
+        if not self.is_dirty() and not self.is_invalid():
+            log.info("Cached %s eval value %s:", self.__class__.__name__, self.value)
+            return self.value
+        self.gr_node.setToolTip(None)
+        try:
+            return self.eval_impl()
+        except ValueError as e:
+            self.mark_invalid()
+            self.gr_node.setToolTip(str(e))
+            self.mark_descendants_dirty()
+        except Exception as e:
+            self.mark_invalid()
+            self.gr_node.setToolTip(str(e))
+            log.exception("Node eval exception")
+
+    @override
+    def on_input_data_changed(self, edge: Edge) -> None:
+        log.info("%s::on_input_data_changed", self.__class__.__name__)
+        self.mark_dirty()
+        self.eval()
 
     @classmethod
     def get_icon(cls) -> QIcon:

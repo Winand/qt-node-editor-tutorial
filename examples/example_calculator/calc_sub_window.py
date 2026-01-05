@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Callable
+from pathlib import Path
 from typing import TYPE_CHECKING, cast, override
 
 from calc_conf import CALC_NODES, MIMETYPE_LISTBOX, Opcode, get_class_from_opcode
@@ -55,6 +56,15 @@ class CalculatorSubWindow(NodeEditorWidget):
         if "opcode" in data:
             return CALC_NODES[data["opcode"]]
         return None
+
+    @override
+    def load_file(self, filename: Path) -> bool:
+        if super().load_file(filename):
+            for node in cast(list[CalcNode], self.scene.nodes):
+                if node.opcode == Opcode.Output:
+                    node.eval()
+            return True
+        return False
 
     def init_new_node_actions(self):
         self.node_actions = {
@@ -177,3 +187,4 @@ class CalculatorSubWindow(NodeEditorWidget):
         scene_pos = self.scene.get_view().mapToScene(event.pos())
         new_calc_node.set_pos(scene_pos.x(), scene_pos.y())
         new_calc_node.gr_node.setSelected(True)
+        log.debug("Selected node: %s", new_calc_node)
