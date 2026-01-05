@@ -9,6 +9,7 @@ from qtpy.QtGui import QBrush, QColor, QFont, QPainter, QPainterPath, QPen
 from qtpy.QtWidgets import (
     QGraphicsItem,
     QGraphicsProxyWidget,
+    QGraphicsSceneHoverEvent,
     QGraphicsSceneMouseEvent,
     QGraphicsTextItem,
     QStyleOptionGraphicsItem,
@@ -29,6 +30,7 @@ class QDMGraphicsNode(QGraphicsItem):
         self.content = node.content
 
         # init flags
+        self.hovered = False
         self._was_moved = False
         # self._last_selected_state = False
 
@@ -39,6 +41,7 @@ class QDMGraphicsNode(QGraphicsItem):
     def init_ui(self):
         self.setFlag(GraphicsItemFlag.ItemIsSelectable)
         self.setFlag(GraphicsItemFlag.ItemIsMovable)
+        self.setAcceptHoverEvents(True)  # activate hover*Event
 
         self.init_title()  # TODO: pass _title_color, _title_font, _padding in args
         self.title = self.node.title
@@ -55,9 +58,18 @@ class QDMGraphicsNode(QGraphicsItem):
         self.socket_vertical_padding = 10.0
 
     def init_assets(self) -> None:
-        self._pen_default = QPen(QColor("#7F000000"))
-        self._pen_selected = QPen(QColor("#FFFFA637"))
-        self._brush_title = QBrush(QColor("#FF313131"))
+        # QColor format: "#[AA]RRGGBB" https://doc.qt.io/qt-6/qcolor.html#fromString
+        self._color = QColor("#7f000000")
+        self._color_selected = QColor("#ffa637")
+        self._color_hovered = QColor("#2879BC")
+
+        self._pen_default = QPen(self._color)
+        self._pen_default.setWidthF(2.0)
+        self._pen_selected = QPen(self._color_selected)
+        self._pen_selected.setWidthF(2.0)
+        self._pen_hovered = QPen(self._color_hovered)
+        self._pen_hovered.setWidthF(2.0)
+        self._brush_title = QBrush(QColor("#313131"))
         self._brush_background = QBrush(QColor("#E3212121"))
 
         self._title_color = Qt.GlobalColor.white
@@ -92,6 +104,16 @@ class QDMGraphicsNode(QGraphicsItem):
         #     self.node.scene.reset_last_selected_states()
         #     self._last_selected_state = self.isSelected()
         #     self.on_selected()
+
+    @override
+    def hoverEnterEvent(self, event: QGraphicsSceneHoverEvent | None) -> None:
+        self.hovered = True
+        self.update()
+
+    @override
+    def hoverLeaveEvent(self, event: QGraphicsSceneHoverEvent | None) -> None:
+        self.hovered = False
+        self.update()
 
     @property
     def title(self):
@@ -167,8 +189,11 @@ class QDMGraphicsNode(QGraphicsItem):
         path_outline = QPainterPath()
         path_outline.addRoundedRect(0, 0, self.width, self.height,
                                     self.edge_roundness, self.edge_roundness)
+        # https://doc.qt.io/qt-6/qpainterpath.html#simplified
         painter.setPen(self._pen_selected if self.isSelected() else
                        self._pen_default)
         painter.setBrush(Qt.BrushStyle.NoBrush)
-        # https://doc.qt.io/qt-6/qpainterpath.html#simplified
         painter.drawPath(path_outline.simplified())
+        if self.hovered and not self.isSelected():
+            painter.setPen(self._pen_hovered)
+            painter.drawPath(path_outline.simplified())
