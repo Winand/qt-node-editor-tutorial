@@ -269,7 +269,6 @@ class QDMGraphicsView(QGraphicsView):
                 # Edge.remove sets gr_edge to None
                 raise ValueError
             self.drag_edge.gr_edge.set_destination(pos.x(), pos.y())
-            self.drag_edge.gr_edge.update()
 
         if self.mode == Mode.EDGE_CUT:
             pos = self.mapToScene(event.pos())

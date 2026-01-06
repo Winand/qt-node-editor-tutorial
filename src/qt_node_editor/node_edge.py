@@ -129,7 +129,6 @@ class Edge(Serializable):
             self.gr_edge.set_destination(*end_pos)
         else:  # dragging mode
             self.gr_edge.set_destination(*source_pos)
-        self.gr_edge.update()
 
     def disconnect_from_sockets(self):
         # TODO: Fix me!!!

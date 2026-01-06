@@ -77,14 +77,15 @@ class QDMGraphicsEdge(QGraphicsPathItem):
 
     def set_source(self, x, y):
         self.pos_source = [x, y]
+        self.setPath(self.calc_path())
 
     def set_destination(self, x, y):
         self.pos_destination = [x, y]
+        self.setPath(self.calc_path())
 
     @override
     def paint(self, painter: QPainter, option: QStyleOptionGraphicsItem | None,
               widget: QWidget | None = None) -> None:
-        self.setPath(self.calc_path())
         painter.setBrush(Qt.BrushStyle.NoBrush)
         dragging = self.edge.end_socket is None
 
