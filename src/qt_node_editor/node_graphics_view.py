@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, override
 
 from qtpy.QtCore import QEvent, QPointF, Qt, Signal
 from qtpy.QtGui import (
+    QContextMenuEvent,
     QDragEnterEvent,
     QDropEvent,
     QKeyEvent,
@@ -52,6 +53,8 @@ class QDMGraphicsView(QGraphicsView):
         self.editing_flag = False
         self.rubber_band_dragging_rectangle = False
         self.last_lmb_click_scene_pos = QPointF()
+        # False - viewport move detection on RMB press started, True - move detected
+        self._viewport_scrolled: bool | None = None
 
         self.zoom_in_factor = 1.25
         self.zoom_clamp = True
@@ -148,6 +151,7 @@ class QDMGraphicsView(QGraphicsView):
                                 event.buttons() | Qt.MouseButton.LeftButton,
                                 event.modifiers())
         super().mousePressEvent(fake_event)
+        self._viewport_scrolled = False  # start viewport move tracking
 
     def right_mouse_button_release(self, event: QMouseEvent):
         fake_event = QMouseEvent(event.type(), event.position(),
@@ -455,6 +459,22 @@ class QDMGraphicsView(QGraphicsView):
         #     super().mouseReleaseEvent(new_event)
         # else:
         #     raise ValueError(f"Event {event_type} not supported")
+
+    @override
+    def scrollContentsBy(self, dx: int, dy: int) -> None:
+        "Event called on every viewport scroll."
+        if self._viewport_scrolled is False:
+            self._viewport_scrolled = True
+        super().scrollContentsBy(dx, dy)
+
+    @override
+    def contextMenuEvent(self, event: QContextMenuEvent) -> None:  # type: ignore[reportIncompatibleMethodOverride]
+        "Do not propagate context menu event if the viewport was scrolled with RMB."
+        if self._viewport_scrolled:  # viewport moved
+            self._viewport_scrolled = None
+            event.accept()
+            return
+        super().contextMenuEvent(event)
 
     def __del__(self) -> None:
         log.debug("delete graphics view")
