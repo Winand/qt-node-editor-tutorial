@@ -1,5 +1,6 @@
 # TODO: use DI or Protocol? https://gemini.google.com/app/d3cef879926b87b8
 import logging
+import math
 from typing import TYPE_CHECKING
 
 from qt_node_editor.node_edge import Edge
@@ -63,10 +64,10 @@ class SceneClipboard:
     def deserialize_from_clipboard(self, data: "SceneSerialize"):
         hashmap: SerializableMap = {}
         mouse_scene_pos = self.scene.get_view().last_scene_mouse_position
-        # TODO: rework bounding box calculation
         # see comment https://www.youtube.com/watch?v=PdqCogmBeXI&lc=UgwvzoSf2dfez6JDf4R4AaABAg
-        # graphical node width should be taken into account too
-        minx, maxx, miny, maxy = 0., 0., 0., 0.
+        # TODO: graphical node width should be taken into account too
+        minx = miny = math.inf
+        maxx = maxy = -math.inf
         for node_data in data["nodes"]:
             x, y = node_data["pos_x"], node_data["pos_y"]
             minx = min(minx, x)
