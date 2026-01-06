@@ -122,7 +122,7 @@ class CalculatorSubWindow(NodeEditorWidget):
                   opcode.name, text, scene_pos.x(), scene_pos.y())
 
         node = get_class_from_opcode(opcode)(self.scene)
-        node.set_pos(scene_pos.x(), scene_pos.y())
+        node.set_pos(scene_pos)
         self.scene.history.store_history(f"Created node {node.__class__.__name__}",
                                          modified=True)
 
@@ -184,7 +184,6 @@ class CalculatorSubWindow(NodeEditorWidget):
         if not (action := context_menu.exec(self.mapToGlobal(event.pos()))):
             return
         new_calc_node = get_class_from_opcode(action.data())(self.scene)
-        scene_pos = self.scene.get_view().mapToScene(event.pos())
-        new_calc_node.set_pos(scene_pos.x(), scene_pos.y())
+        new_calc_node.set_pos(self.scene.get_view().mapToScene(event.pos()))
         new_calc_node.gr_node.setSelected(True)
         log.debug("Selected node: %s", new_calc_node)

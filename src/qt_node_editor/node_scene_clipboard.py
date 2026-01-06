@@ -3,6 +3,8 @@ import logging
 import math
 from typing import TYPE_CHECKING
 
+from qtpy.QtCore import QPointF
+
 from qt_node_editor.node_edge import Edge
 from qt_node_editor.node_graphics_edge import QDMGraphicsEdge
 from qt_node_editor.node_graphics_node import QDMGraphicsNode
@@ -80,8 +82,8 @@ class SceneClipboard:
         # center = view.mapToScene(view.rect().center())
 
         # calculate the offset of the newly created nodes
-        offset_x = mouse_scene_pos.x() - bbox_center_x
-        offset_y = mouse_scene_pos.y() - bbox_center_y
+        offset = QPointF(mouse_scene_pos.x() - bbox_center_x,
+                         mouse_scene_pos.y() - bbox_center_y)
 
         for node_data in data["nodes"]:
             new_node = self.scene.get_node_type(node_data)(self.scene)
@@ -89,8 +91,7 @@ class SceneClipboard:
             # new_node.gr_node.setSelected(True)  # @Winand: deselect prev. sel. first
 
             # readjust the new node's position
-            pos = new_node.pos
-            new_node.set_pos(pos.x() + offset_x, pos.y() + offset_y)
+            new_node.set_pos(new_node.pos + offset)
 
         for edge_data in data["edges"]:
             new_edge = Edge(self.scene)

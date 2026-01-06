@@ -3,7 +3,9 @@ Node
 """
 import logging
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, Any, TypedDict, override
+from typing import TYPE_CHECKING, Any, TypedDict, overload, override
+
+from qtpy.QtCore import QPointF
 
 from qt_node_editor.node_content_widget import ContentSerialize, QDMContentWidget
 from qt_node_editor.node_graphics_node import QDMGraphicsNode
@@ -103,8 +105,18 @@ class Node(Serializable):
         "Node position in a scene"
         return self.gr_node.pos()
 
-    def set_pos(self, x: float, y: float):
-        self.gr_node.setPos(x, y)
+    @overload
+    def set_pos(self, x: float, y: float) -> None: ...
+    @overload
+    def set_pos(self, x: QPointF) -> None: ...
+    def set_pos(self, x: float | QPointF, y: float | None = None) -> None:
+        "Set node position on a scene."
+        if isinstance(x, QPointF):
+            self.gr_node.setPos(x)
+        elif y is not None:
+            self.gr_node.setPos(x, y)
+        else:
+            raise TypeError
 
     @property
     def title(self):
