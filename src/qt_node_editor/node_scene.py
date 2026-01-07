@@ -286,7 +286,7 @@ class Scene(Serializable):
     @override
     def serialize(self) -> SceneSerialize:
         nodes = [n.serialize() for n in self.nodes]
-        edges = [e.serialize() for e in self.edges]
+        edges = [e.serialize() for e in self.edges if e.end_socket]  # WA: not dragging
         return {  # dicts are ordered in Python 3.7+
             "id": self.id,
             "width": self.scene_width,
