@@ -29,14 +29,14 @@ if TYPE_CHECKING:
 RenderHint = QPainter.RenderHint
 log = logging.getLogger(__name__)
 
-class Mode(Enum):
+class ViewStateMode(Enum):
     NO_OP = auto()
     EDGE_DRAG = auto()
     EDGE_CUT = auto()
 
 EDGE_DRAG_START_THRESHOLD = 10  # px
 
-type WeakListener[T] = ReferenceType[Callable[[T], None]]
+type WeakListener[T, R] = ReferenceType[Callable[[T], R]]
 
 
 class QDMGraphicsView(QGraphicsView):
@@ -49,12 +49,14 @@ class QDMGraphicsView(QGraphicsView):
         self.init_ui()
         self.setScene(scene.gr_scene)
 
-        self.mode = Mode.NO_OP
+        self.mode = ViewStateMode.NO_OP
         self.editing_flag = False
         self.rubber_band_dragging_rectangle = False
         self.last_lmb_click_scene_pos = QPointF()
         # False - viewport move detection on RMB press started, True - move detected
         self._viewport_scrolled: bool | None = None
+        # call _empty_space_listeners once per one edge drag
+        self._empty_space_handled: bool = True
 
         self.zoom_in_factor = 1.25
         self.zoom_clamp = True
@@ -66,8 +68,9 @@ class QDMGraphicsView(QGraphicsView):
         self.cutline = QDMCutLine()
         self._scene.gr_scene.addItem(self.cutline)
 
-        self._drag_enter_listeners: list[WeakListener[QDragEnterEvent]] = []
-        self._drop_listeners: list[WeakListener[QDropEvent]] = []
+        self._drag_enter_listeners: list[WeakListener[QDragEnterEvent, None]] = []
+        self._drop_listeners: list[WeakListener[QDropEvent, None]] = []
+        self._empty_space_listeners: list[WeakListener[QMouseEvent, bool]] = []
 
     def init_ui(self):
         # https://doc.qt.io/qt-6/qpainter.html#RenderHint-enum
@@ -111,6 +114,10 @@ class QDMGraphicsView(QGraphicsView):
 
     def add_drop_listener(self, callback: Callable[[QDropEvent], None]) -> None:
         self._drop_listeners.append(ref(callback))
+
+    def add_empty_space_listener(self, callback: Callable[[QMouseEvent], bool]) -> None:
+        "Call listeners when edge is dragged to empty space."
+        self._empty_space_listeners.append(ref(callback))
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
         if event.button() == Qt.MouseButton.LeftButton:
@@ -174,12 +181,19 @@ class QDMGraphicsView(QGraphicsView):
                                         Qt.KeyboardModifier.ShiftModifier)
 
         if isinstance(item, QDMGraphicsSocket):
-            if self.mode == Mode.NO_OP:
-                self.mode = Mode.EDGE_DRAG
+            if self.mode == ViewStateMode.NO_OP:
+                self._empty_space_handled = False
+                self.mode = ViewStateMode.EDGE_DRAG
                 self.edge_drag_start(item)
                 return
 
-        if self.mode == Mode.EDGE_DRAG:
+        if self.mode == ViewStateMode.EDGE_DRAG:
+            if not item and not self._empty_space_handled:
+                for callback_ref in self._empty_space_listeners:
+                    if callback := callback_ref():
+                        self._empty_space_handled = callback(event)
+                if self._empty_space_handled:
+                    return
             # TODO: if you click on the same pin you started to drag it doesn't
             # return and selects underlying edge or node. Return in both cases?
             if self.edge_drag_end(item):
@@ -188,7 +202,7 @@ class QDMGraphicsView(QGraphicsView):
         if item is None:
             if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
                 # Ctrl + background click
-                self.mode  = Mode.EDGE_CUT
+                self.mode  = ViewStateMode.EDGE_CUT
                 fake_event = QMouseEvent(
                     QEvent.Type.MouseButtonRelease,
                     event.position(), event.globalPosition(),
@@ -208,6 +222,7 @@ class QDMGraphicsView(QGraphicsView):
         super().mousePressEvent(event)  # pass to upper level
 
     def left_mouse_button_release(self, event: QMouseEvent):
+        print("RELEASE")
         if event.modifiers() & Qt.KeyboardModifier.ShiftModifier:
             # Use Shift to select graphics items along with Ctrl
             event = self.modify_mouse_event(event,
@@ -215,17 +230,22 @@ class QDMGraphicsView(QGraphicsView):
                                         Qt.KeyboardModifier.ShiftModifier)
 
         item = self.get_item_at_click(event)
-        if self.mode == Mode.EDGE_DRAG:
+        if self.mode == ViewStateMode.EDGE_DRAG:
             if self.distance_between_click_and_release_is_off(event):
-                if self.edge_drag_end(item):
+                handled = False
+                if not item:
+                    for callback_ref in self._empty_space_listeners:
+                        if callback := callback_ref():
+                            handled = callback(event)
+                if handled or self.edge_drag_end(item):
                     return
 
-        if self.mode == Mode.EDGE_CUT:
+        if self.mode == ViewStateMode.EDGE_CUT:
             self.cut_intersecting_edges()
             # keep `line_points` so boundingRect is on screen and cutline is hidden
             self.cutline.hide()
             QApplication.setOverrideCursor(Qt.CursorShape.ArrowCursor)
-            self.mode = Mode.NO_OP
+            self.mode = ViewStateMode.NO_OP
             return
 
         super().mouseReleaseEvent(event)
@@ -265,7 +285,7 @@ class QDMGraphicsView(QGraphicsView):
         super().mouseReleaseEvent(event)
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:
-        if self.mode == Mode.EDGE_DRAG:
+        if self.mode == ViewStateMode.EDGE_DRAG:
             pos = self.mapToScene(event.pos())
             if not (self.drag_edge and self.drag_edge.gr_edge):
                 # @Winand
@@ -274,7 +294,7 @@ class QDMGraphicsView(QGraphicsView):
                 raise ValueError
             self.drag_edge.gr_edge.set_destination(pos.x(), pos.y())
 
-        if self.mode == Mode.EDGE_CUT:
+        if self.mode == ViewStateMode.EDGE_CUT:
             pos = self.mapToScene(event.pos())
             self.cutline.line_points.append(pos)
             self.cutline.update()
@@ -322,12 +342,12 @@ class QDMGraphicsView(QGraphicsView):
         self._scene.history.store_history("Delete cut edges", modified=True)
 
     def delete_selected(self):
-        for item in self._scene.gr_scene.selectedItems():
-            if isinstance(item, QDMGraphicsEdge):
-                item.edge.remove()
-            elif isinstance(item, QDMGraphicsNode):
-                item.node.remove()
-        self._scene.history.store_history("Delete selected", modified=True)
+        with self._scene.history.transaction("Delete selected", modified=True):
+            for item in self._scene.gr_scene.selectedItems():
+                if isinstance(item, QDMGraphicsEdge):
+                    item.edge.remove()
+                elif isinstance(item, QDMGraphicsNode):
+                    item.node.remove()
 
     def debug_modifiers(self, event: QMouseEvent):
         out = "MODS: "
@@ -351,9 +371,9 @@ class QDMGraphicsView(QGraphicsView):
         self.drag_edge = Edge(self._scene, item.socket, None, EdgeType.BEZIER)
         log.debug("  drag_edge: %s", self.drag_edge)
 
-    def edge_drag_end(self, item: QGraphicsItem | None):
-        "Return True if skip the rest of the code."
-        self.mode = Mode.NO_OP
+    def edge_drag_end(self, item: QGraphicsItem | None) -> Edge | None:
+        "Create a new Edge and connect to `item` if it is a socket."
+        self.mode = ViewStateMode.NO_OP
         if not (self.drag_edge and self.drag_edge.gr_edge):
             # @Winand
             # edge_drag_start sets up drag_edge
@@ -399,7 +419,7 @@ class QDMGraphicsView(QGraphicsView):
                 if socket.is_input:
                     socket.node.on_input_data_changed(new_edge)
 
-            return True
+            return new_edge
 
         # Cancel:
         # log.debug("about to set socket to previous edge: %s", self.previous_edge)
@@ -408,7 +428,7 @@ class QDMGraphicsView(QGraphicsView):
         #         raise ValueError  # @Winand
         #     self.previous_edge.start_socket.edges = self.previous_edge
         log.debug("everything done.")
-        return False
+        return None
     
     def distance_between_click_and_release_is_off(self, event: QMouseEvent):
         "Measures if we are too far from the last LMB click scene position."

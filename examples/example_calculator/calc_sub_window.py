@@ -5,13 +5,14 @@ from typing import TYPE_CHECKING, cast, override
 
 from calc_conf import CALC_NODES, MIMETYPE_LISTBOX, Opcode, get_class_from_opcode
 from calc_node_base import CalcNode, CalcNodeSerialize
-from qtpy.QtCore import Qt
+from qtpy.QtCore import QCoreApplication, Qt
 from qtpy.QtGui import (
     QAction,
     QCloseEvent,
     QContextMenuEvent,
     QDragEnterEvent,
     QDropEvent,
+    QMouseEvent,
     QPixmap,
 )
 from qtpy.QtWidgets import QGraphicsProxyWidget, QGraphicsTextItem, QMenu, QWidget
@@ -23,6 +24,7 @@ from qt_node_editor.node_editor_widget import NodeEditorWidget
 from qt_node_editor.node_graphics_edge import QDMGraphicsEdge
 from qt_node_editor.node_graphics_node import QDMGraphicsNode
 from qt_node_editor.node_graphics_socket import QDMGraphicsSocket
+from qt_node_editor.node_graphics_view import ViewStateMode
 from qt_node_editor.node_node import Node, NodeSerialize
 from qt_node_editor.utils import ref, some
 
@@ -44,9 +46,11 @@ class CalculatorSubWindow(NodeEditorWidget):
         self.init_new_node_actions()
 
         self.scene.add_has_been_modified_listener(self.set_title)
+        self.scene.history.add_history_restored_listener(self.on_history_restored)
         self.scene.add_drag_enter_listener(self.on_drag_enter)
         self.scene.add_drop_listener(self.on_drop)
         self.scene.set_node_class_selector(self.get_node_type)
+        self.scene.get_view().add_empty_space_listener(self.open_context_menu)
 
         self._close_event_listeners: list[ReferenceType[CloseEventCallback]] = []
 
@@ -57,12 +61,26 @@ class CalculatorSubWindow(NodeEditorWidget):
             return CALC_NODES[data["opcode"]]
         return None
 
+    def open_context_menu(self, event: QMouseEvent) -> bool:
+        "Open context menu."
+        QCoreApplication.postEvent(self, QContextMenuEvent(
+            QContextMenuEvent.Reason.Other, event.pos(),
+        ))
+        return True
+
+    def _do_eval_outputs(self) -> None:
+        for node in cast(list[CalcNode], self.scene.nodes):
+            if node.opcode == Opcode.Output:
+                node.eval()
+
+    def on_history_restored(self) -> None:
+        "Re-evaluate graph on undo."
+        self._do_eval_outputs()
+
     @override
     def load_file(self, filename: Path) -> bool:
         if super().load_file(filename):
-            for node in cast(list[CalcNode], self.scene.nodes):
-                if node.opcode == Opcode.Output:
-                    node.eval()
+            self._do_eval_outputs()
             return True
         return False
 
@@ -88,7 +106,7 @@ class CalculatorSubWindow(NodeEditorWidget):
         Add a new callback to be called when the scene is modified.
 
         :param callback: A callback function
-        :type callback: Callable[[], None]
+        :type callback: Callable[[CalculatorSubWindow, QCloseEvent], None]
         """
         self._close_event_listeners.append(ref(callback))
 
@@ -185,5 +203,15 @@ class CalculatorSubWindow(NodeEditorWidget):
             return
         new_calc_node = get_class_from_opcode(action.data())(self.scene)
         new_calc_node.set_pos(self.scene.get_view().mapToScene(event.pos()))
-        new_calc_node.gr_node.setSelected(True)
-        log.debug("Selected node: %s", new_calc_node)
+        with self.scene.history.transaction(f"Created {new_calc_node.title} node",
+                                            modified=True):
+            new_calc_node.gr_node.setSelected(True)
+            log.debug("Instantiated node: %s", new_calc_node.title)
+            view = self.scene.get_view()
+
+            if view.mode == ViewStateMode.EDGE_DRAG:
+                if not (inputs := new_calc_node.inputs):
+                    log.debug("Node %s has no inputs", new_calc_node.title)
+                # TODO: always first input?
+                view.edge_drag_end(inputs[0].gr_socket if inputs else None)
+                # edge.gr_edge.setSelected(True)

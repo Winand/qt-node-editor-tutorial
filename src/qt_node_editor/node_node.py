@@ -233,13 +233,11 @@ class Node(Serializable):
         ))
 
     def get_input(self, index: int = 0) -> "Node | None":
-        try:
-            socket = self.inputs[index]
-            edge = socket.edges[0]
-        except IndexError:
-            log.exception("Cannot get input, none is attached to %s:%d", self, index)
+        socket = self.inputs[index]
+        if not socket.edges:  # WA
+            log.info("Cannot get input, none is attached to %s:%d", self.title, index)
             return None
-        return edge.get_connected_node(socket)
+        return socket.edges[0].get_connected_node(socket)
 
     def get_inputs(self, index: int = 0) -> list["Node"]:
         socket = self.inputs[index]

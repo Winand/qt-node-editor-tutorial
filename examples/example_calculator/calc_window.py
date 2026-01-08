@@ -148,7 +148,6 @@ class CalculatorWindow(NodeEditorWindow):
     def create_menus(self) -> None:
         super().create_menus()
 
-        # FIXME: edit actions become enable/disabled only when menu is shown
         self.menu_edit.aboutToShow.connect(self.update_menu_edit)
 
         self.menu_window = some(self.menuBar().addMenu("&Window"))

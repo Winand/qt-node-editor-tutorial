@@ -1,5 +1,6 @@
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from typing import TYPE_CHECKING, TypedDict
 
 from qt_node_editor.node_graphics_edge import QDMGraphicsEdge
@@ -30,7 +31,11 @@ class SceneHistory:
         self.scene = scene
         self.clear()
         self.history_limit = 32
+        self._transaction = False
+        # listeners
         self._history_modified_listeners: list[ReferenceType[Callable[[], None]]] = []
+        self._history_stored_listeners: list[ReferenceType[Callable[[], None]]] = []
+        self._history_restored_listeners: list[ReferenceType[Callable[[], None]]] = []
 
     def clear(self) -> None:
         "Initialize history stack."
@@ -40,6 +45,33 @@ class SceneHistory:
 
     def store_initial_history_stamp(self) -> None:
         self.store_history("Initial history stamp", modified=False)
+
+    def add_history_modified_listener(self, callback: Callable[[], None]) -> None:
+        """
+        Add a new callback to be called when the scene history is updated.
+
+        :param callback: A callback function
+        :type callback: Callable[[], None]
+        """
+        self._history_modified_listeners.append(ref(callback))
+
+    def add_history_stored_listener(self, callback: Callable[[], None]) -> None:
+        """
+        Add a new callback to be called when the scene history is updated.
+
+        :param callback: A callback function
+        :type callback: Callable[[], None]
+        """
+        self._history_stored_listeners.append(ref(callback))
+
+    def add_history_restored_listener(self, callback: Callable[[], None]) -> None:
+        """
+        Add a new callback to be called when the scene history is updated.
+
+        :param callback: A callback function
+        :type callback: Callable[[], None]
+        """
+        self._history_restored_listeners.append(ref(callback))
 
     def can_undo(self) -> bool:
         "Undo action is available."
@@ -61,15 +93,6 @@ class SceneHistory:
             self.history_current_step += 1
             self._restore_history()
 
-    def add_history_modified_listener(self, callback: Callable[[], None]) -> None:
-        """
-        Add a new callback to be called when the scene history is updated.
-
-        :param callback: A callback function
-        :type callback: Callable[[], None]
-        """
-        self._history_modified_listeners.append(ref(callback))
-
     def _restore_history(self) -> None:
         "Update the scene with the history stamp at current step."
         log.debug("Restoring history .... current_step @%d (%d)",
@@ -80,8 +103,23 @@ class SceneHistory:
         for callback_ref in self._history_modified_listeners:
             if callback := callback_ref():
                 callback()
+        for callback_ref in self._history_restored_listeners:
+            if callback := callback_ref():
+                callback()
+
+    @contextmanager
+    def transaction(self, desc: str, *, modified: bool,
+                    ) -> Iterator["SceneHistory"]:
+        "Store history single time on exit from context manager."
+        self._transaction = True
+        yield self
+        self._transaction = False
+        self.store_history(desc, modified=modified)
 
     def store_history(self, desc: str, *, modified: bool):
+        if self._transaction:
+            log.debug('Skip storing "%s" in history transaction mode', desc)
+            return
         self.scene.has_been_modified = self.scene.has_been_modified or modified
         hs = self.create_history_stamp(desc)
         if self.history_stack:  # @Winand
@@ -114,6 +152,9 @@ class SceneHistory:
 
         # always trigger history modified callbacks (i.e. to update Edit menu)
         for callback_ref in self._history_modified_listeners:
+            if callback := callback_ref():
+                callback()
+        for callback_ref in self._history_stored_listeners:
             if callback := callback_ref():
                 callback()
 

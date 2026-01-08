@@ -1,7 +1,7 @@
 import logging
 import pkgutil
 import weakref
-from collections.abc import Callable, Generator
+from collections.abc import Callable, Iterator
 from pathlib import Path
 from types import MethodType
 from typing import Any, Generic, Type, TypeVar, cast
@@ -66,7 +66,7 @@ def get_cause(exc: BaseException | None) -> BaseException | None:
         return exc.__context__
     return None
 
-def exception_chain(exc: BaseException) -> Generator[BaseException, Any, None]:
+def exception_chain(exc: BaseException) -> Iterator[BaseException]:
     "Iterate through an exception and all of its causes."
     yield exc
     _exc = exc

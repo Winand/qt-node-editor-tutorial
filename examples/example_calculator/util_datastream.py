@@ -50,7 +50,7 @@ def from_bytearray(byte_array: QByteArray, *types: type[QtSerializable],
         *types: Type objects indicating what to read (int, float, str, bytes, bool, QPixmap)
 
     Returns:
-        Generator: Deserialized values
+        tuple: Deserialized values
 
     """
     def _read_value(stream: QDataStream, typ: type[QtSerializable]) -> QtSerializable:
