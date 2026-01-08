@@ -4,3 +4,4 @@ __pycache__
 .python-version
 conf/logging_config.toml
 graph.json
+docs/build
