@@ -267,7 +267,7 @@ class Node(Serializable):
         }
 
     @override
-    def deserialize(self, data: NodeSerialize, hashmap: SerializableMap,
+    def deserialize(self, data: NodeSerialize, hashmap: SerializableMap, *,
                     restore_id: bool = True) -> bool:
         # FIXME: use some kind of a fixed structure instead of a dict?
         if restore_id:

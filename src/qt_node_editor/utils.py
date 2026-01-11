@@ -1,3 +1,4 @@
+"General helper functions module."
 import logging
 import pkgutil
 import weakref
@@ -52,7 +53,7 @@ def ref[C](func: C) -> weakref.ReferenceType[C]:
     return weakref.ref(func)
 
 
-def get_cause(exc: BaseException | None) -> BaseException | None:
+def _get_cause(exc: BaseException | None) -> BaseException | None:
     """
     Get an exception cause from __cause__ or __context__ field.
 
@@ -66,18 +67,27 @@ def get_cause(exc: BaseException | None) -> BaseException | None:
         return exc.__context__
     return None
 
-def exception_chain(exc: BaseException) -> Iterator[BaseException]:
+def _exception_chain(exc: BaseException) -> Iterator[BaseException]:
     "Iterate through an exception and all of its causes."
     yield exc
     _exc = exc
-    while _exc := get_cause(_exc):
+    while _exc := _get_cause(_exc):
         yield _exc
 
 def format_exception_chain(exc: Exception, indent: str = '  ') -> str:
-    "Return representation of an exception and all of its causes."
+    """
+    Return representation of an exception and all of its causes.
+
+    :param exc: exception object
+    :type exc: Exception
+    :param indent: exception level indentation string
+    :type indent: str
+    :return: exception tree (each exception on a new line)
+    :rtype: str
+    """
     return "\n".join(
         f"{indent * level}{exception!r}"
-        for level, exception in enumerate(exception_chain(exc))
+        for level, exception in enumerate(_exception_chain(exc))
     )
 
 
@@ -96,6 +106,9 @@ def load_stylesheet(filename: Path) -> None:
     Apply stylesheet from file to application.
 
     File can be external or built-in in the package.
+
+    :param filenames: QSS file path
+    :type filenames: Path
     """
     log.info("Style loading: %s", filename)
     cast(QApplication, QApplication.instance()) \
@@ -107,6 +120,9 @@ def load_stylesheets(*filenames: Path) -> None:
     Apply combined stylesheet from files to application.
 
     Files can be external or built-in in the package.
+
+    :param filenames: QSS file paths
+    :type filenames: Path
     """
     log.info("Style loading: %s", filenames)
     cast(QApplication, QApplication.instance()).setStyleSheet(

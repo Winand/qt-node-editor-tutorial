@@ -11,3 +11,4 @@ qt-node-editor documentation
    :caption: Contents:
 
    coding_standards
+   apidoc/qt_node_editor

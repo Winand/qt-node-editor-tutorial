@@ -47,11 +47,12 @@ class InvalidSceneFileError(Exception):
     "Invalid scene file."
 
 class SceneSerialize(TypedDict):
-    id: NotRequired[SerializableID]  # TODO: required
-    width: NotRequired[int]  # TODO: required
-    height: NotRequired[int]  # TODO: required
-    nodes: list[NodeSerialize]
-    edges: list[EdgeSerialize]
+    "Serialized scene data structure."
+    id: NotRequired[SerializableID]  #: id of the Scene object # TODO: required
+    width: NotRequired[int]  #: Scene width # TODO: required
+    height: NotRequired[int]  #: Scene height # TODO: required
+    nodes: list[NodeSerialize]  #: List of serialized nodes on the scene
+    edges: list[EdgeSerialize]  #: List of serialized edges on the scene
 
 
 class Scene(Serializable):
@@ -301,7 +302,7 @@ class Scene(Serializable):
         self.clear()
         hashmap = {}
         if restore_id:  # avoid id collisions when copying items
-            self.id = data["id"]
+            self.id = data["id"]  # TODO: Scene id is not used?
 
         for node_data in data["nodes"]:
             node_type = self.get_node_type(node_data)

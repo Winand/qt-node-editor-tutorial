@@ -18,6 +18,7 @@
 * methods named ```do_xy``` usually *do* certain task and also take care off low level operations
 * classes always contain methods in this order:
     * ```__init__```
+    * Python magic methods (i.e. `__str__`), getters and setters
     * ```init_xy``` functions
     * listener functions
     * nodeeditor event fuctions

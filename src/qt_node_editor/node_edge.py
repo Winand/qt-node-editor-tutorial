@@ -3,7 +3,7 @@ Edge between nodes
 """
 import logging
 from enum import Enum, auto
-from typing import TYPE_CHECKING, TypedDict, cast
+from typing import TYPE_CHECKING, TypedDict, cast, override
 
 from qt_node_editor.node_graphics_edge import (
     QDMGraphicsEdgeBezier,
@@ -36,8 +36,22 @@ log = logging.getLogger(__name__)
 
 
 class Edge(Serializable):
+    "Class for representing Edge in node editor."
+
+    # TODO: start_socket can be None?
     def __init__(self, scene: "Scene", start_socket: Socket | None=None,
                  end_socket: Socket | None = None, shape=EdgeType.DIRECT) -> None:
+        """Init.
+
+        :param scene: Reference to the :class:`~qt_node_editor.node_scene.Scene`
+        :type scene: Scene
+        :param start_socket: Reference to the starting socket
+        :type start_socket: Socket | None
+        :param end_socket: Reference to the end socket or ``None``
+        :type end_socket: Socket | None
+        :param shape: Edge shape
+        :type shape: EdgeType
+        """
         super().__init__()
         self.scene = scene
 
@@ -51,13 +65,6 @@ class Edge(Serializable):
 
         self.scene.add_edge(self)
 
-    def get_connected_node(self, socket: Socket) -> Node | None:
-        "Get a node on the other end of the edge."
-        if other_socket := self.start_socket if socket == self.end_socket else \
-                           self.end_socket:
-            return other_socket.node
-        return None
-
     def __str__(self):
         start_sock = hex(id(self.start_socket))[-3:] if self.start_socket else None
         end_sock = hex(id(self.end_socket))[-3:] if self.end_socket else None
@@ -66,7 +73,12 @@ class Edge(Serializable):
 
     @property
     def start_socket(self) -> Socket | None:
-        "Start socket to which the edge is connected."
+        """
+        Start socket to which the edge is connected.
+
+        :getter: Returns start :class:`~qt_node_editor.node_socket.Socket`
+        :setter: Sets start :class:`~qt_node_editor.node_socket.Socket` safely
+        """
         return self._start_socket
 
     @start_socket.setter
@@ -110,6 +122,13 @@ class Edge(Serializable):
         self.scene.gr_scene.addItem(self.gr_edge)
         if self.start_socket is not None:
             self.update_positions()
+
+    def get_connected_node(self, socket: Socket) -> Node | None:
+        "Get a node on the other end of the edge."
+        if other_socket := self.start_socket if socket == self.end_socket else \
+                           self.end_socket:
+            return other_socket.node
+        return None
 
     def update_positions(self):
         "Update start and end points of the edge on a scene"
@@ -161,6 +180,7 @@ class Edge(Serializable):
                 if socket.is_input:
                     socket.node.on_input_data_changed(self)
 
+    @override
     def serialize(self) -> EdgeSerialize:
         return {
             "id": self.id,
@@ -169,7 +189,8 @@ class Edge(Serializable):
             "end": self.end_socket.id if self.end_socket else None
         }
 
-    def deserialize(self, data: EdgeSerialize, hashmap: SerializableMap,
+    @override
+    def deserialize(self, data: EdgeSerialize, hashmap: SerializableMap, *,
                     restore_id: bool = True) -> bool:
         if restore_id:
             self.id = data["id"]

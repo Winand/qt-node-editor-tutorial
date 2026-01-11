@@ -5,3 +5,4 @@ __pycache__
 conf/logging_config.toml
 graph.json
 docs/build
+docs/source/apidoc
