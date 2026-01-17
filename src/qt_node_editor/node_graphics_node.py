@@ -1,6 +1,4 @@
-"""
-Representation of a node in a graphics scene.
-"""
+"Representation of a :class:`.Node` in a graphics scene."
 
 from typing import TYPE_CHECKING, override
 
@@ -24,10 +22,17 @@ GraphicsItemFlag = QGraphicsItem.GraphicsItemFlag
 
 class QDMGraphicsNode(QGraphicsItem):
     "Representation of a node in a graphics scene."
+
     def __init__(self, node: "Node", parent: QGraphicsItem | None = None) -> None:
+        """
+        Initialize :class:`QDMGraphicsNode`.
+
+        :param node: reference to a :class:`.Node` instance
+        :param parent: parent graphics item or ``None``
+        """
         super().__init__(parent)
-        self.node = node
-        self.content = node.content
+        self.node = node  #: reference to a :class:`.Node` instance
+        self.content = node.content  #: reference to a :class:`.Node` content widget
 
         # init flags
         self.hovered = False
@@ -36,19 +41,31 @@ class QDMGraphicsNode(QGraphicsItem):
 
         self.init_sizes()
         self.init_assets()
-        self.init_ui()
+        self._init_ui()
 
-    def init_ui(self):
+    @property
+    def title(self) -> str:
+        "Text in node header area."
+        return self._title
+
+    @title.setter
+    def title(self, value: str) -> None:
+        self._title = value
+        self.title_item.setPlainText(self._title)
+
+    def _init_ui(self) -> None:
+        "Set up graphics node (flags, title, content)."
         self.setFlag(GraphicsItemFlag.ItemIsSelectable)
         self.setFlag(GraphicsItemFlag.ItemIsMovable)
         self.setAcceptHoverEvents(True)  # activate hover*Event
 
-        self.init_title()  # TODO: pass _title_color, _title_font, _padding in args
+        self._init_title()  # TODO: pass _title_color, _title_font, _padding in args
         self.title = self.node.title
 
-        self.init_content()
+        self._init_content()
 
     def init_sizes(self) -> None:
+        "Set up size properties (width, height, padding, etc)."
         self.width = 180
         self.height = 240
         self.edge_roundness = 10.0
@@ -58,6 +75,7 @@ class QDMGraphicsNode(QGraphicsItem):
         self.socket_vertical_padding = 10.0
 
     def init_assets(self) -> None:
+        "Initialize colors, pens, brushes."
         # QColor format: "#[AA]RRGGBB" https://doc.qt.io/qt-6/qcolor.html#fromString
         self._color = QColor("#7f000000")
         self._color_selected = QColor("#ffa637")
@@ -79,7 +97,9 @@ class QDMGraphicsNode(QGraphicsItem):
     # def on_selected(self) -> None:
     #     self.node.scene.gr_scene.item_selected.emit()
 
+    @override
     def mouseMoveEvent(self, event: QGraphicsSceneMouseEvent | None) -> None:
+        "Handle mouse press&move event. Update location of connected edges."
         super().mouseMoveEvent(event)
         # FIXME: optimize
         for node in self.node.scene.nodes:
@@ -89,6 +109,7 @@ class QDMGraphicsNode(QGraphicsItem):
 
     @override
     def mouseReleaseEvent(self, event: QGraphicsSceneMouseEvent | None) -> None:
+        "Handle mouse release event. Store node move action in history."
         super().mouseReleaseEvent(event)
         if self._was_moved:
             self._was_moved = False
@@ -115,27 +136,14 @@ class QDMGraphicsNode(QGraphicsItem):
         self.hovered = False
         self.update()
 
-    @property
-    def title(self):
-        "Set text in node header area."
-        return self._title
-
-    @title.setter
-    def title(self, value: str):
-        self._title = value
-        self.title_item.setPlainText(self._title)
-
+    @override
     def boundingRect(self) -> QRectF:  # required
-        """
-        Outer bounds of the item.
-        """
+        "Outer bounds of the item."
         return QRectF(0, 0, self.width, self.height) \
             .normalized()  # swap values if width/height is negative (needed?)
 
-    def init_title(self):
-        """
-        Initialize font and color of a node title.
-        """
+    def _init_title(self) -> None:
+        "Initialize font and color of a node title."
         self.title_item = QGraphicsTextItem(self)
         # self.title_item.node = self.node  # https://gitlab.com/pavel.krupala/pyqt-node-editor/-/blob/master/nodeeditor/node_graphics_node.py?ref_type=heads#L172
         self.title_item.setObjectName("title")  # identify on click
@@ -145,7 +153,8 @@ class QDMGraphicsNode(QGraphicsItem):
         self.title_item.setPos(self.title_horizontal_padding, 0)
         self.title_item.setTextWidth(self.width - 2 * self.title_horizontal_padding)
 
-    def init_content(self):
+    def _init_content(self) -> None:
+        "Set up proxy widget containing the content widget."
         self.gr_content = QGraphicsProxyWidget(self)
         self.content.setGeometry(
             int(self.edge_padding), int(self.title_height + self.edge_padding),
@@ -156,9 +165,7 @@ class QDMGraphicsNode(QGraphicsItem):
 
     def paint(self, painter: QPainter | None, option: QStyleOptionGraphicsItem | None,
               widget: QWidget | None = None) -> None:  # required
-        """
-        Paint title, content and outline.
-        """
+        "Paint title, content and outline."
         assert painter
         # Title ->
         path_title = QPainterPath()

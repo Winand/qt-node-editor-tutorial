@@ -1,6 +1,4 @@
-"""
-Scene
-"""
+"Module for managing a scene."
 import json
 import logging
 from collections.abc import Callable, Generator
@@ -56,13 +54,26 @@ class SceneSerialize(TypedDict):
 
 
 class Scene(Serializable):
-    def __init__(self):
-        super().__init__()
-        self.nodes: list[Node] = []
-        self.edges: list[Edge] = []
+    """
+    The scene containing nodes and edges.
 
-        self.scene_width = 64000
-        self.scene_height = 64000
+    Events
+    ------
+    - `Has Been Modified` - something has changed in the `Scene`
+    - `Item Selected` - `Node` or `Edge` is selected
+    - `Items Deselected` - everything was deselected
+    - `Drag Enter` - an object is Dragged onto the `Scene`, it can be accepted of denied
+    - `Drop` - an object is dropped into the `Scene`
+    """
+
+    def __init__(self) -> None:
+        "Initialize the :class:`Scene`."
+        super().__init__()
+        self.nodes: list[Node] = []  #: list of nodes present on the :class:`Scene`
+        self.edges: list[Edge] = []  #: list of edges present on the :class:`Scene`
+
+        self.scene_width = 64000  #: width of the scene (logical units)
+        self.scene_height = 64000  #: height of the scene (logical units)
 
         self._has_been_modified = False
         self.last_selected_items = []
@@ -75,21 +86,36 @@ class Scene(Serializable):
         self.node_class_selector: Callable[[NodeSerialize], type[Node] | None] \
             = lambda _data: Node
 
-        self.init_ui()
-        self.init_validator()
-        self.history = SceneHistory(self)
-        self.clipboard = SceneClipboard(self)
+        self._init_ui()
+        self._init_validator()
+        self.history: SceneHistory = SceneHistory(self)  #: undo/redo operations helper
+        self.clipboard: SceneClipboard = SceneClipboard(self)  #: cut/copy/paste helper
 
         # self.gr_scene.item_selected.connect(self.on_item_selected)
         # self.gr_scene.items_deselected.connect(self.on_items_deselected)
         self.gr_scene.selectionChanged.connect(self.on_selection_changed)
         self._selection_handling = True
 
-    def init_ui(self):
+    @property
+    def has_been_modified(self) -> bool:
+        "Check if the scene is modified. Setter triggers 'has been modified' callbacks."
+        return self._has_been_modified
+
+    @has_been_modified.setter
+    def has_been_modified(self, value: bool) -> None:
+        # NOTE: for modified -> unmodified state callbacks are also called
+        if self._has_been_modified != value:
+            self._has_been_modified = value
+            for callback_ref in self._has_been_modified_listeners:
+                if callback := callback_ref():
+                    callback()
+
+    def _init_ui(self) -> None:
+        "Set up graphics scene instance."
         self.gr_scene = QDMGraphicsScene(self)  # TODO: graphics scene has no parent
         self.gr_scene.set_rect(self.scene_width, self.scene_height)
 
-    def init_validator(self) -> None:
+    def _init_validator(self) -> None:
         "Support custom node types using a custom handler and type hints."
         self.validator = Loader()
         last_node_type: type[Node]  # store node type to get right content type
@@ -167,26 +193,11 @@ class Scene(Serializable):
         "Get a list of selected elements on the scene."
         return self.gr_scene.selectedItems()
 
-    @property
-    def has_been_modified(self) -> bool:
-        "Check if the scene is modified."
-        return self._has_been_modified
-
-    @has_been_modified.setter
-    def has_been_modified(self, value: bool) -> None:
-        # NOTE: for modified -> unmodified state callbacks are also called
-        if self._has_been_modified != value:
-            self._has_been_modified = value
-            for callback_ref in self._has_been_modified_listeners:
-                if callback := callback_ref():
-                    callback()
-
     def add_has_been_modified_listener(self, callback: Callable[[], None]) -> None:
         """
         Add a new callback to be called when the scene is modified.
 
         :param callback: A callback function
-        :type callback: Callable[[], None]
         """
         self._has_been_modified_listeners.append(ref(callback))
 
@@ -195,7 +206,6 @@ class Scene(Serializable):
         Add a new callback to be called when an item is selected on the scene.
 
         :param callback: A callback function
-        :type callback: Callable[[], None]
         """
         self._item_selected_listeners.append(ref(callback))
 
@@ -204,15 +214,24 @@ class Scene(Serializable):
         Add a new callback to be called when items are deselected on the scene.
 
         :param callback: A callback function
-        :type callback: Callable[[], None]
         """
         self._items_deselected_listeners.append(ref(callback))
 
     def add_drag_enter_listener(self, callback: Callable[[QDragEnterEvent], None],
                                 ) -> None:
+        """
+        Register callback for drag enter event.
+
+        :param callback: A callback function
+        """
         self.get_view().add_drag_enter_listener(callback)
 
     def add_drop_listener(self, callback: Callable[[QDropEvent], None]) -> None:
+        """
+        Register callback for item drop event.
+
+        :param callback: A callback function
+        """
         self.get_view().add_drop_listener(callback)
 
     # # custom flag to detect node or edge has been selected....
@@ -227,42 +246,81 @@ class Scene(Serializable):
         return cast('QDMGraphicsView', self.gr_scene.views()[0])
 
     def get_item_at(self, pos: QPoint) -> QGraphicsItem | None:
+        """
+        Retrieve an item at `pos` position on the scene.
+
+        :param pos: point on the scene
+        :return: a graphics item or `None`
+        """
         return self.get_view().itemAt(pos)
 
-    def add_node(self, node: "Node"):
+    def add_node(self, node: "Node") -> None:
+        """
+        Add a node to the scene.
+
+        :param node: :class:`.Node` to be added to the scene
+        """
         self.nodes.append(node)
 
-    def add_edge(self, edge: "Edge"):
+    def add_edge(self, edge: "Edge") -> None:
+        """
+        Add an edge to the scene.
+
+        :param node: :class:`.Edge` to be added to the scene
+        """
         self.edges.append(edge)
 
-    def remove_node(self, node: "Node"):
+    def remove_node(self, node: "Node") -> None:
+        """
+        Remove a node from the scene.
+
+        :param node: :class:`.Node` to be removed from the scene
+        """
         if node in self.nodes:
             self.nodes.remove(node)
         else:
             log.warning("Node %s not found in the scene node list.", node)
 
-    def remove_edge(self, edge: "Edge"):
+    def remove_edge(self, edge: "Edge") -> None:
+        """
+        Remove an edge from the scene.
+
+        :param node: :class:`.Edge` to be removed from the scene
+        """
         if edge in self.edges:
             self.edges.remove(edge)
         else:
             log.warning("Node %s not found in the scene edge list.", edge)
 
-    def clear(self):
-        "Clear the scene."
+    def clear(self) -> None:
+        """
+        Clear the scene.
+
+        Removes all the nodes and hence all the edges.
+        """
         while len(self.nodes) > 0:
             self.nodes[0].remove()
         self.has_been_modified = False
         # TODO: clear history here? see self.history.history_stack
 
     def save_to_file(self, filename: Path) -> None:
-        "Save the scene to file."
+        """
+        Save the scene to file.
+
+        :param filename: file path to save the scene to
+        """
         with filename.open("w", encoding="utf-8") as file:
             file.write(json.dumps(self.serialize(), indent=4))
         self.has_been_modified = False
         print(f"Saving to {filename} was successfull")
 
     def load_from_file(self, filename: Path) -> None:
-        "Load scene from file."
+        """
+        Load scene from file.
+
+        :param filename: file path to load the scene from
+        :raises: :class:`InvalidSceneFileError` on load error
+        """
         try:
             with filename.open(encoding="utf-8") as file:
                 data = self.validator.load(json.load(file), SceneSerialize)
@@ -277,11 +335,23 @@ class Scene(Serializable):
 
     def set_node_class_selector(
             self, selector: Callable[[NodeSerialize], type[Node] | None]) -> None:
-        "Set node class retrieval function from serialized data. Default: data -> Node."
+        """
+        Set node class retrieval function from serialized data.
+
+        Default selector is `(data) -> Node`.
+
+        :param selector: function which returns `Node` subclass type from serialized
+                         `Node` data
+        """
         self.node_class_selector = selector
 
     def get_node_type(self, data: NodeSerialize) -> type[Node]:
-        "Retrieve node class from serialized node. Default: Node."
+        """
+        Retrieve node class from serialized node. Defaults to Node.
+
+        :param data: serialized `Node` object data
+        :return: :class:`.Node` subclass
+        """
         return self.node_class_selector(data) or Node
 
     @override
@@ -298,7 +368,7 @@ class Scene(Serializable):
 
     @override
     def deserialize(self, data: SceneSerialize, hashmap: SerializableMap | None = None,
-                    restore_id: bool = True) -> bool:
+                    *, restore_id: bool = True) -> bool:
         self.clear()
         hashmap = {}
         if restore_id:  # avoid id collisions when copying items
@@ -306,10 +376,10 @@ class Scene(Serializable):
 
         for node_data in data["nodes"]:
             node_type = self.get_node_type(node_data)
-            node_type(self).deserialize(node_data, hashmap, restore_id)
+            node_type(self).deserialize(node_data, hashmap, restore_id=restore_id)
 
         for edge_data in data["edges"]:
-            Edge(self).deserialize(edge_data, hashmap, restore_id)
+            Edge(self).deserialize(edge_data, hashmap, restore_id=restore_id)
 
         return True
 

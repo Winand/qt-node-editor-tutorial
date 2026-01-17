@@ -1,3 +1,4 @@
+"Representation of a :class:`.Edge` in a graphics scene."
 import math
 from typing import TYPE_CHECKING, override
 
@@ -18,29 +19,38 @@ if TYPE_CHECKING:
 
 GraphicsItemFlag = QGraphicsItem.GraphicsItemFlag
 
-EDGE_CP_ROUNDNESS = 100
+EDGE_CP_ROUNDNESS = 100  #: Bezier control point distance on the line
 
 class QDMGraphicsEdge(QGraphicsPathItem):
-    "Representation of an edge between nodes."
-    def __init__(self, edge: "Edge", parent=None):
+    "Abstract representation of an edge between nodes."
+
+    def __init__(self, edge: "Edge", parent: QGraphicsItem | None = None) -> None:
+        """
+        Initialize :class:`QDMGraphicsEdge`.
+
+        :param edge: reference to a :class:`.Edge` instance
+        :param parent: parent graphics item or ``None``
+        """
         super().__init__(parent)
-        self.edge = edge
+        self.edge = edge  #: reference to a :class:`.Edge` instance
         # init flags
         # self._last_selected_state = False
         self.hovered = False
         # init variables
-        self.pos_source = [0, 0]
-        self.pos_destination = [100, 100]
+        self.pos_source = [0, 0]  #: ``[x, y]`` source position on `Scene`
+        self.pos_destination = [100, 100]  #: ``[x, y]`` destination position on `Scene`
 
-        self.init_assets()
-        self.init_ui()
+        self._init_assets()
+        self._init_ui()
 
-    def init_ui(self) -> None:
+    def _init_ui(self) -> None:
+        "Set up graphics edge flags and properties."
         self.setFlag(GraphicsItemFlag.ItemIsSelectable)
         self.setAcceptHoverEvents(True)  # activate hover*Event
         self.setZValue(-1)  # place under nodes
 
-    def init_assets(self) -> None:
+    def _init_assets(self) -> None:
+        "Set up colors and pens."
         self._color = QColor("#001000")
         self._color_selected = QColor("#00ff00")
         self._color_hovered = QColor("#2879BC")
@@ -75,17 +85,49 @@ class QDMGraphicsEdge(QGraphicsPathItem):
         self.hovered = False
         self.update()
 
-    def set_source(self, x, y):
+    def set_source(self, x: int, y: int) -> None:
+        """
+        Set source point.
+
+        Edge path is updated with :func:`calc_path`.
+
+        :param x: x position
+        :param y: y position
+        """
         self.pos_source = [x, y]
         self.setPath(self.calc_path())
 
-    def set_destination(self, x, y):
+    def set_destination(self, x: int, y: int) -> None:
+        """
+        Set destinantion point.
+
+        Edge path is updated with :func:`calc_path`.
+
+        :param x: x position
+        :param y: y position
+        """
         self.pos_destination = [x, y]
         self.setPath(self.calc_path())
 
+    # boundingRect() is calculated from shape() if it is implemented correctly.
+    # If it is required to paint() something outside of the shape() this rect
+    # needs to be adjusted. | https://youtu.be/FPP4RcGeQpU?t=33
+
     @override
-    def paint(self, painter: QPainter, option: QStyleOptionGraphicsItem | None,
+    def shape(self) -> QPainterPath:
+        "Shape is a clickable area of the Item."
+        # By default shape() is a closed path(), see example image in docs
+        # https://doc.qt.io/qt-6/qgraphicspathitem.html#details.
+        stroker = QPainterPathStroker()  # creates a fillable shape from path
+        stroker.setWidth(8)  # wider path is easier to click
+        stroker.setCapStyle(Qt.PenCapStyle.FlatCap)  # do not add width/2 margin to ends
+        return stroker.createStroke(self.path())
+
+    @override
+    def paint(self, painter: QPainter | None, option: QStyleOptionGraphicsItem | None,
               widget: QWidget | None = None) -> None:
+        "Paint the edge in normal, hovered or dragging state."
+        assert painter
         painter.setBrush(Qt.BrushStyle.NoBrush)
         dragging = self.edge.end_socket is None
 
@@ -99,31 +141,29 @@ class QDMGraphicsEdge(QGraphicsPathItem):
             painter.setPen(self._pen_selected if self.isSelected() else self._pen)
         painter.drawPath(self.path())
 
-    def intersects_with(self, p1: QPointF, p2: QPointF):
+    def intersects_with(self, p1: QPointF, p2: QPointF) -> bool:
+        """
+        Check if the edge intersects with a line between points `p1` and `p2`.
+
+        :param p1: First point
+        :param p2: Second point
+        :return: ``True`` if the edge intersects with the line
+        """
         cutpath = QPainterPath(p1)
         cutpath.lineTo(p2)
         path = self.calc_path()
         return cutpath.intersects(path)
 
     def calc_path(self) -> QPainterPath:
-        "Handles drawing QPainterPath from point A to B"
-        raise NotImplementedError("This method has to be overridden in a child class")
-
-    # boundingRect() is calculated from shape() if it is implemented correctly.
-    # If it is required to paint() something outside of the shape() this rect
-    # needs to be adjusted. | https://youtu.be/FPP4RcGeQpU?t=33
-
-    def shape(self) -> QPainterPath:
-        "Shape is a clickable area of the Item."
-        # By default shape() is a closed path(), see example image in docs
-        # https://doc.qt.io/qt-6/qgraphicspathitem.html#details.
-        stroker = QPainterPathStroker()  # creates a fillable shape from path
-        stroker.setWidth(8)  # wider path is easier to click
-        stroker.setCapStyle(Qt.PenCapStyle.FlatCap)  # do not add width/2 margin to ends
-        return stroker.createStroke(self.path())
+        "Recalculate path between edge ends. No default implementation."
+        msg = "This method has to be overridden in a child class"
+        raise NotImplementedError(msg)
 
 
 class QDMGraphicsEdgeDirect(QDMGraphicsEdge):
+    "Direct line connection edge."
+
+    @override
     def calc_path(self) -> QPainterPath:
         path = QPainterPath(QPointF(self.pos_source[0], self.pos_source[1]))
         path.lineTo(self.pos_destination[0], self.pos_destination[1])
@@ -131,6 +171,9 @@ class QDMGraphicsEdgeDirect(QDMGraphicsEdge):
 
 
 class QDMGraphicsEdgeBezier(QDMGraphicsEdge):
+    "Cubic Bezier line connection edge."
+
+    @override
     def calc_path(self) -> QPainterPath:
         s = self.pos_source
         d = self.pos_destination
@@ -152,12 +195,12 @@ class QDMGraphicsEdgeBezier(QDMGraphicsEdge):
 
             cpy_d = (
                 (s[1] - d[1]) / math.fabs(
-                    (s[1] - d[1]) if (s[1] - d[1]) != 0 else .00001  # evade div. by 0
+                    (s[1] - d[1]) if (s[1] - d[1]) != 0 else .00001,  # evade div. by 0
                 )
             ) * EDGE_CP_ROUNDNESS
             cpy_s = (
                 (d[1] - s[1]) / math.fabs(
-                    (d[1] - s[1]) if (d[1] - s[1]) != 0 else .00001  # evade div. by 0
+                    (d[1] - s[1]) if (d[1] - s[1]) != 0 else .00001,  # evade div. by 0
                 )
             ) * EDGE_CP_ROUNDNESS
 

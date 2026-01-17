@@ -7,6 +7,7 @@ type SerializableMap = dict[SerializableID, Serializable]
 
 class Serializable[T: Mapping[str, Any]]:
     "Interface to use in implementation of serializable objects."
+
     def __init__(self) -> None:
         "Set up ``id`` field for any serializable class in default constructor."
         #: All the serializable objects in the project use ``id`` attribute for

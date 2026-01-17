@@ -1,3 +1,4 @@
+(coding-standards)=
 # Coding Standards
 ## File name guidelines
 * Files in qt_node_editor package start with `node_`
@@ -24,7 +25,6 @@
     * nodeeditor event fuctions
     * nodeeditor ```do_xy``` and ```get_xy``` helping functions 
     * Qt6 event functions
-    * python magic methods (i.e. ```__str__```), setters and getters 
     * other functions
     * optionally overriden Qt ```paint``` method
     * ```serialize``` and ```deserialize``` methods at the end    

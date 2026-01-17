@@ -20,10 +20,24 @@ log = logging.getLogger(__name__)
 
 
 class SceneClipboard:
+    "Support for cut/copy/paste actions."
+
     def __init__(self, scene: "Scene") -> None:
+        """
+        Initialize :class:`SceneClipboard`.
+
+        :param scene: reference to a :class:`.Scene` object
+        """
         self.scene = scene
 
-    def serialize_selected(self, delete=False):
+    # TODO: do not delete items inside this method.
+    def serialize_selected(self, *, delete: bool = False) -> "SceneSerialize":
+        """
+        Serialize selected items in the scene into :class:`.SceneSerialize`.
+
+        :param delete: Delete selected part of the scene after serialization (cut)
+        :return: Currently selected part of the scene serialized
+        """
         log.debug("--- COPY TO CLIPBOARD ---")
         sel_nodes: list[NodeSerialize] = []
         sel_edges: list[Edge] = []
@@ -53,9 +67,9 @@ class SceneClipboard:
         for edge in sel_edges:
             edges_final.append(edge.serialize())
 
-        data = {
+        data: SceneSerialize = {
             'nodes': sel_nodes,
-            'edges': edges_final
+            'edges': edges_final,
         }
         if delete:  # delete on cut action
             self.scene.get_view().delete_selected()
@@ -63,7 +77,12 @@ class SceneClipboard:
                                              modified=True)
         return data
 
-    def deserialize_from_clipboard(self, data: "SceneSerialize"):
+    def deserialize_from_clipboard(self, data: "SceneSerialize") -> None:
+        """
+        Deserialize data from the clipboard.
+
+        :param data: Data for deserialization into the :class:`.Scene` object
+        """
         hashmap: SerializableMap = {}
         mouse_scene_pos = self.scene.get_view().last_scene_mouse_position
         # see comment https://www.youtube.com/watch?v=PdqCogmBeXI&lc=UgwvzoSf2dfez6JDf4R4AaABAg
@@ -100,5 +119,5 @@ class SceneClipboard:
         self.scene.history.store_history("Pasted elements into the scene",
                                          modified=True)
 
-    def __del__(self):
+    def __del__(self) -> None:
         log.debug("delete clipboard helper")

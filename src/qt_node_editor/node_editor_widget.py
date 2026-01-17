@@ -1,16 +1,16 @@
+"""
+Module with `NodeEditorWidget` class containing view with a scene.
+
+`NodeEditorWidget` also has interface for creating, loading and saving documents.
+"""
 import logging
 from pathlib import Path
-from typing import cast
 
 from qtpy.QtCore import Qt
 from qtpy.QtGui import QBrush, QColor, QFont, QPen
 from qtpy.QtWidgets import (
     QApplication,
     QGraphicsItem,
-    QGraphicsLineItem,
-    QGraphicsProxyWidget,
-    QGraphicsRectItem,
-    QGraphicsTextItem,
     QMessageBox,
     QPushButton,
     QTextEdit,
@@ -22,21 +22,29 @@ from qt_node_editor.node_edge import Edge, EdgeType
 from qt_node_editor.node_graphics_view import QDMGraphicsView
 from qt_node_editor.node_node import Node
 from qt_node_editor.node_scene import InvalidSceneFileError, Scene
-from qt_node_editor.utils import format_exception_chain
+from qt_node_editor.utils import format_exception_chain, some
 
 GraphicsItemFlag = QGraphicsItem.GraphicsItemFlag
 log = logging.getLogger(__name__)
 
 
 class NodeEditorWidget(QWidget):
+    "Container for a graphics view with a scene."
+
     def __init__(self, parent: QWidget | None = None) -> None:
+        """
+        Initialize :class:`NodeEditorWidget`.
+
+        :param parent: parent widget or ``None``
+        """
         super().__init__(parent)
 
-        self.filename: Path | None = None
+        self.filename: Path | None = None  #: current document file path or ``None``
 
-        self.init_ui()
+        self._init_ui()
 
-    def init_ui(self):
+    def _init_ui(self) -> None:
+        "Set up :doc:`view <qt_node_editor.node_graphics_view>` and :class:`.Scene`."
         self._layout = QVBoxLayout()
         self._layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self._layout)
@@ -72,6 +80,12 @@ class NodeEditorWidget(QWidget):
         return self.scene.history.can_redo()
 
     def get_user_friendly_filename(self) -> str:
+        """
+        Get document name from the file path if the document was saved.
+
+        Return default name for unsaved documents.
+        Adds "*" if the document has unsaved changes.
+        """
         name = self.filename.name if self.filename is not None else "New Graph"
         return name + ("*" if self.is_modified else "")
 
@@ -83,7 +97,12 @@ class NodeEditorWidget(QWidget):
         self.scene.history.store_initial_history_stamp()
 
     def load_file(self, filename: Path) -> bool:
-        "Load a scene from a file."
+        """
+        Load a scene from a file.
+
+        :param filename: file path to load from
+        :return: ``True`` if a file was loaded successfully
+        """
         QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
         try:
             self.scene.load_from_file(filename)
@@ -100,7 +119,15 @@ class NodeEditorWidget(QWidget):
         return True
 
     def save_file(self, filename: Path | None = None) -> bool:
-        "Save the scene to a file."
+        """
+        Save the scene to a file.
+
+        Remembers `filename` as current document file path. If called without
+        `filename` parameter specified that file path is required to be set before.
+
+        :param filename: file path to save to
+        :return: ``True`` if a file was saved successfully
+        """
         if filename:
             self.filename = filename  # TODO: unnecessary side effect?
         assert self.filename, "File name is required to save the scene."
@@ -110,7 +137,7 @@ class NodeEditorWidget(QWidget):
         return True
 
     def add_nodes(self) -> None:
-        "Add some example nodes to the scene."
+        "Add 3 example nodes and 2 edges to the scene."
         node1 = Node(self.scene, "My Awesome Node 1",
                     inputs=[0, 0, 0], outputs=[1])
         node2 = Node(self.scene, "My Awesome Node 2",
@@ -128,37 +155,36 @@ class NodeEditorWidget(QWidget):
 
         self.scene.history.store_initial_history_stamp()
 
-    def add_debug_content(self):
+    def add_debug_content(self) -> None:
+        "Put several test graphics elements on the scene."
         green_brush = QBrush(Qt.GlobalColor.green)  # see also QtGui.QColorConstants
         outline_pen = QPen(Qt.GlobalColor.black)
         outline_pen.setWidth(2)
-        rect = cast(QGraphicsRectItem,
-                    self.scene.gr_scene.addRect(-100, -100, 80, 100, outline_pen, green_brush))
+        rect = some(self.scene.gr_scene.addRect(-100, -100, 80, 100,
+                                                outline_pen, green_brush))
         rect.setFlag(GraphicsItemFlag.ItemIsMovable)
 
-        text = cast(QGraphicsTextItem,
-                    self.scene.gr_scene.addText("This is my awesome text",
-                                          QFont("Verdana")))
+        text = some(self.scene.gr_scene.addText("This is my awesome text",
+                                                QFont("Verdana")))
         text.setFlag(GraphicsItemFlag.ItemIsSelectable)
         text.setFlag(GraphicsItemFlag.ItemIsMovable)
         text.setDefaultTextColor(QColor.fromRgbF(1., 1., 1.))
 
         widget1 = QPushButton("Hello World!")
-        proxy1 = cast(QGraphicsProxyWidget, self.scene.gr_scene.addWidget(widget1))
+        proxy1 = some(self.scene.gr_scene.addWidget(widget1))
         proxy1.setFlag(GraphicsItemFlag.ItemIsMovable)
         proxy1.setPos(0, 30)
 
         widget2 = QTextEdit()
-        proxy2 = cast(QGraphicsProxyWidget,
-                      self.scene.gr_scene.addWidget(widget2))
+        proxy2 = some(self.scene.gr_scene.addWidget(widget2))
         proxy2.setFlag(GraphicsItemFlag.ItemIsSelectable)
         proxy2.setPos(0, 60)
 
-        line = cast(QGraphicsLineItem,
-                    self.scene.gr_scene.addLine(-200, -200, 400, -100, outline_pen))
+        line = some(self.scene.gr_scene.addLine(-200, -200, 400, -100, outline_pen))
         line.setFlag(GraphicsItemFlag.ItemIsMovable | GraphicsItemFlag.ItemIsSelectable)
 
     def __del__(self) -> None:
+        "Node editor widget destruction event."
         log.debug("delete editor widget")
         # import gc
         # from PyQt6.QtCore import QTimer

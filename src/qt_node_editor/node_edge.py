@@ -1,6 +1,4 @@
-"""
-Edge between nodes
-"""
+"Module contains class for representing an Edge between nodes."
 import logging
 from enum import Enum, auto
 from typing import TYPE_CHECKING, TypedDict, cast, override
@@ -22,11 +20,12 @@ if TYPE_CHECKING:
 
 
 class EdgeType(int, Enum):
-    "Edge visual appearance"
-    DIRECT = auto()
-    BEZIER = auto()
+    "Edge visual appearance."
+    DIRECT = auto()  #: see :class:`.QDMGraphicsEdgeDirect`
+    BEZIER = auto()  #: see :class:`.QDMGraphicsEdgeBezier`
 
 class EdgeSerialize(TypedDict):
+    "Serialized edge data structure."
     id: SerializableID
     edge_type: EdgeType
     start: SerializableID | None
@@ -39,11 +38,12 @@ class Edge(Serializable):
     "Class for representing Edge in node editor."
 
     # TODO: start_socket can be None?
-    def __init__(self, scene: "Scene", start_socket: Socket | None=None,
-                 end_socket: Socket | None = None, shape=EdgeType.DIRECT) -> None:
-        """Init.
+    def __init__(self, scene: "Scene", start_socket: Socket | None = None,
+                 end_socket: Socket | None = None, shape: EdgeType = EdgeType.DIRECT,
+                 ) -> None:
+        """Initialize :class:`Edge`.
 
-        :param scene: Reference to the :class:`~qt_node_editor.node_scene.Scene`
+        :param scene: Reference to a :class:`.Scene` instance
         :type scene: Scene
         :param start_socket: Reference to the starting socket
         :type start_socket: Socket | None
@@ -53,7 +53,7 @@ class Edge(Serializable):
         :type shape: EdgeType
         """
         super().__init__()
-        self.scene = scene
+        self.scene = scene  #: Reference to a :class:`.Scene` instance
 
         # default init
         self._start_socket = None
@@ -65,7 +65,7 @@ class Edge(Serializable):
 
         self.scene.add_edge(self)
 
-    def __str__(self):
+    def __str__(self) -> str:
         start_sock = hex(id(self.start_socket))[-3:] if self.start_socket else None
         end_sock = hex(id(self.end_socket))[-3:] if self.end_socket else None
         return (f"<Edge ..{hex(id(self))[-5:]} "
@@ -76,8 +76,8 @@ class Edge(Serializable):
         """
         Start socket to which the edge is connected.
 
-        :getter: Returns start :class:`~qt_node_editor.node_socket.Socket`
-        :setter: Sets start :class:`~qt_node_editor.node_socket.Socket` safely
+        :getter: Returns start :class:`.Socket` or ``None``
+        :setter: Sets start :class:`.Socket` safely
         """
         return self._start_socket
 
@@ -91,7 +91,12 @@ class Edge(Serializable):
 
     @property
     def end_socket(self) -> Socket | None:
-        "End socket to which the edge is connected."
+        """
+        End socket to which the edge is connected.
+
+        :getter: Returns end :class:`.Socket` or ``None``
+        :setter: Sets end :class:`.Socket` safely
+        """
         return self._end_socket
 
     @end_socket.setter
@@ -104,10 +109,16 @@ class Edge(Serializable):
 
     @property
     def edge_type(self) -> EdgeType:
+        """
+        Edge type. See :class:`EdgeType`.
+
+        :getter: get edge type constant for current ``Edge``
+        :getter: sets new edge type. On background creates new :class:`.QDMGraphicsEdge`
+        """
         return self._edge_type
 
     @edge_type.setter
-    def edge_type(self, value: EdgeType):
+    def edge_type(self, value: EdgeType) -> None:
         if hasattr(self, "gr_edge") and self.gr_edge is not None:
             self.scene.gr_scene.removeItem(self.gr_edge)
 
@@ -117,26 +128,33 @@ class Edge(Serializable):
         elif self._edge_type == EdgeType.BEZIER:
             self.gr_edge = QDMGraphicsEdgeBezier(self)
         else:
-            raise ValueError(f"Unknown edge type: {value}")
+            msg = f"Unknown edge type: {value}"
+            raise ValueError(msg)
 
         self.scene.gr_scene.addItem(self.gr_edge)
         if self.start_socket is not None:
             self.update_positions()
 
     def get_connected_node(self, socket: Socket) -> Node | None:
-        "Get a node on the other end of the edge."
+        """
+        Get a node on the other end of the edge.
+
+        :param socket: A known :class:`.Socket` to determine the opposite one
+        :return: A node to which the opposite socket belongs or ``None``
+        """
         if other_socket := self.start_socket if socket == self.end_socket else \
                            self.end_socket:
             return other_socket.node
         return None
 
-    def update_positions(self):
-        "Update start and end points of the edge on a scene"
+    def update_positions(self) -> None:
+        "Update start and end points of the edge on a scene."
         if not self.start_socket or not self.gr_edge:
             # @Winand
             # disconnect_from_sockets sets start_socket to None
             # remove sets gr_edge to None
-            raise ValueError(f"{self.start_socket=} {self.gr_edge=}")
+            msg = f"{self.start_socket=} {self.gr_edge=}"
+            raise ValueError(msg)
         source_pos = list(self.start_socket.get_socket_position())
         source_pos[0] += self.start_socket.node.gr_node.pos().x()
         source_pos[1] += self.start_socket.node.gr_node.pos().y()
@@ -149,7 +167,8 @@ class Edge(Serializable):
         else:  # dragging mode
             self.gr_edge.set_destination(*source_pos)
 
-    def disconnect_from_sockets(self):
+    def disconnect_from_sockets(self) -> None:
+        "Reset start and end sockets to ``None``."
         # TODO: Fix me!!!
         # if self.start_socket is not None:
         #     self.start_socket.remove_edge(self)
@@ -158,7 +177,16 @@ class Edge(Serializable):
         self.end_socket = None
         self.start_socket = None
 
-    def remove(self):
+    def remove(self) -> None:
+        """
+        Safely remove the edge from the scene.
+
+        Notifies previously connected sockets about connection and input change.
+        Triggers node methods:
+
+        - :meth:`.Node.on_edge_connection_changed`
+        - :meth:`.Node.on_input_data_changed`
+        """
         old_start_socket, old_end_socket = self.start_socket, self.end_socket
         log.debug("# Removing Edge %s", self)
         log.debug(" - remove edge from all sockets")

@@ -1,7 +1,11 @@
 # Qt Node Editor
-This project follows Pavel Křupala tutorial series.
-It uses Qt 6 and qtpy abstraction layer. Poetry is used to manage dependencies.
+This project follows Pavel Křupala Node Editor tutorial series.
+It uses Qt 6 and qtpy abstraction layer. uv is used as a project management tool.
 ![](screenshot.png)
+
+## Requirements
+- Python 3.12 or above
+- Qt bindings library: PyQt5, PyQt6, PySide2 or PySide6
 
 ## See also
 * [Node Editor in Python Tutorial Series](https://www.blenderfreak.com/tutorials/node-editor-tutorial-series/)

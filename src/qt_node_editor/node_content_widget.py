@@ -46,7 +46,7 @@ class QDMContentWidget[N: "Node"](QWidget, Serializable):
 
         self.init_ui()
 
-    def init_ui(self):
+    def init_ui(self) -> None:
         """
         Set up layout and widgets to be rendered in graphics node class.
 
@@ -61,12 +61,12 @@ class QDMContentWidget[N: "Node"](QWidget, Serializable):
         self._layout.addWidget(self.wdg_label)
         self._layout.addWidget(QDMTextEdit("foo"))
 
-    def set_editing_flag(self, value: bool):
+    def set_editing_flag(self, value: bool) -> None:
         """
-        Set editing flag in :class:`~qt_node_editor.node_graphics_view.QDMGraphicsView`.
+        Set editing flag in :class:`.QDMGraphicsView`.
 
         This flag helps to handle keys inside nodes with ``QLineEdit`` or ``QTextEdit``
-        (overriden :py:class:`QDMTextEdit` class can be used)
+        (overriden :class:`QDMTextEdit` class can be used)
         and with QGraphicsView class method ``keyPressEvent``.
 
         .. note::
@@ -99,7 +99,8 @@ class QDMTextEdit(QTextEdit):
     """
 
     # FIXME: do not set editing flag from within text box (?)
-    def focusInEvent(self, e: QFocusEvent) -> None:
+    @override
+    def focusInEvent(self, e: QFocusEvent | None) -> None:
         """
         Process focus event. Set editing flag in the scene view.
 
@@ -109,6 +110,7 @@ class QDMTextEdit(QTextEdit):
         cast(QDMContentWidget, self.parentWidget()).set_editing_flag(True)
         return super().focusInEvent(e)
 
+    @override
     def focusOutEvent(self, e: QFocusEvent | None) -> None:
         """
         Process focus out event. Unset editing flag in the scene view.

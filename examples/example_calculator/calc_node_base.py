@@ -138,6 +138,6 @@ class CalcNode(Node):
     @override
     def deserialize(self, data: CalcNodeSerialize, hashmap: SerializableMap,  # pyright: ignore[reportIncompatibleMethodOverride]
                     restore_id: bool = True) -> bool:
-        res = super().deserialize(data, hashmap, restore_id)
+        res = super().deserialize(data, hashmap, restore_id=restore_id)
         log.debug("Deserialized CalcNode '%s', res:%s", self.__class__.__name__, res)
         return res

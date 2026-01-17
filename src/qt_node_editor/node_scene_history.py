@@ -1,3 +1,4 @@
+"Maintain history of user actions."
 import logging
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
@@ -21,16 +22,32 @@ class HistorySel(TypedDict):
     edges: list[SerializableID]
 
 class HistoryStamp(TypedDict):
-    desc: str
-    snapshot: 'SceneSerialize'
-    selection: HistorySel
+    "History step data structure."
+    desc: str  #: Step description
+    snapshot: 'SceneSerialize'  #: Serialized scene
+    selection: HistorySel  #: List of selected objects on the scene
 
 
 class SceneHistory:
+    """
+    Support for undo/redo operations on the scene.
+
+    Events
+    ------
+    - `History Modified` - a history stamp has been stored or restored
+    - `History Stored` - a history stamp has been stored
+    - `History Restored` - a history stamp has been restored
+    """
+
     def __init__(self, scene: "Scene") -> None:
-        self.scene = scene
+        """
+        Initialize :class:`SceneHistory`.
+
+        :param scene: Reference to a :class:`.Scene` instance
+        """
+        self.scene = scene  #: Reference to a :class:`.Scene` instance
         self.clear()
-        self.history_limit = 32
+        self.history_limit = 32  #: Number of history steps that can be stored
         self._transaction = False
         # listeners
         self._history_modified_listeners: list[ReferenceType[Callable[[], None]]] = []
@@ -44,6 +61,7 @@ class SceneHistory:
         self._history_modified_step: int | None = None
 
     def store_initial_history_stamp(self) -> None:
+        "Save the first history step (on new file or file open)."
         self.store_history("Initial history stamp", modified=False)
 
     def add_history_modified_listener(self, callback: Callable[[], None]) -> None:
@@ -81,13 +99,15 @@ class SceneHistory:
         "Redo action is available."
         return self.history_current_step + 1 < len(self.history_stack)
 
-    def undo(self):
+    def undo(self) -> None:
+        "Undo last operation."
         log.debug("UNDO")
         if self.can_undo():
             self.history_current_step -= 1
             self._restore_history()
 
-    def redo(self):
+    def redo(self) -> None:
+        "Redo next operation in history stack."
         log.debug("REDO")
         if self.can_redo():
             self.history_current_step += 1
@@ -110,13 +130,27 @@ class SceneHistory:
     @contextmanager
     def transaction(self, desc: str, *, modified: bool,
                     ) -> Iterator["SceneHistory"]:
-        "Store history single time on exit from context manager."
+        """
+        Store history single time on exit from context manager.
+
+        :param desc: New history step description
+        :param modified: ``True`` if operation modifies the document
+        :return: self
+        """
         self._transaction = True
         yield self
         self._transaction = False
         self.store_history(desc, modified=modified)
 
-    def store_history(self, desc: str, *, modified: bool):
+    def store_history(self, desc: str, *, modified: bool) -> None:
+        """
+        Store new history step in the history stack.
+
+        Triggers "history modified", "history stored" callbacks.
+
+        :param desc: New history step description
+        :param modified: ``True`` if operation modifies the document
+        """
         if self._transaction:
             log.debug('Skip storing "%s" in history transaction mode', desc)
             return
@@ -159,6 +193,12 @@ class SceneHistory:
                 callback()
 
     def create_history_stamp(self, desc: str) -> HistoryStamp:
+        """
+        Serialize current scene state into a new :class:`HistoryStamp` object.
+
+        :param desc: DescriptNew history step descriptionion
+        :return: Scene state serialized into a :class:`HistoryStamp` object
+        """
         sel_obj: HistorySel = {
             'nodes': [],
             'edges': [],
@@ -176,7 +216,12 @@ class SceneHistory:
         }
         return history_stamp
 
-    def restore_history_stamp(self, history_stamp: HistoryStamp):
+    def restore_history_stamp(self, history_stamp: HistoryStamp) -> None:
+        """
+        Restore scene state from a :class:`HistoryStamp` object.
+
+        :param history_stamp: a :class:`HistoryStamp` object to restore
+        """
         log.debug("RHS: %s", history_stamp['desc'])
         with self.scene.selection_handling_disabled():
             self.scene.deserialize(history_stamp['snapshot'])
@@ -193,5 +238,5 @@ class SceneHistory:
                         node.gr_node.setSelected(True)
                         break
 
-    def __del__(self):
+    def __del__(self) -> None:
         log.debug("delete history helper")

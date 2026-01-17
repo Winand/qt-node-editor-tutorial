@@ -10,5 +10,10 @@ qt-node-editor documentation
    :maxdepth: 2
    :caption: Contents:
 
+   readme
+   events
+   serialization
+   evaluation
    coding_standards
+   changelog
    apidoc/qt_node_editor

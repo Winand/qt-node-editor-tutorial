@@ -17,6 +17,17 @@ SOCKET_COLORS = [
     QColor("#DBE220"),
     QColor("#888888"),
 ]
+"""
+:class:`.Socket` color list. Color names: https://colornamer.robertcooper.me.
+
+0. lucky orange
+1. green apple
+2. raiden blue
+3. soft purple
+4. baked apple (red)
+5. poisonous icecream (yellow)
+6. argent (grey)
+"""
 
 
 class QDMGraphicsSocket(QGraphicsItem):
@@ -57,9 +68,10 @@ class QDMGraphicsSocket(QGraphicsItem):
         self._brush = QBrush(self._color_background)
 
     @override
-    def paint(self, painter: QPainter, option: QStyleOptionGraphicsItem | None,
+    def paint(self, painter: QPainter | None, option: QStyleOptionGraphicsItem | None,
               widget: QWidget | None = None) -> None:
         "Paint a circle."
+        assert painter
         painter.setBrush(self._brush)
         painter.setPen(self._pen)
         painter.drawEllipse(QRectF(-self.radius, -self.radius,

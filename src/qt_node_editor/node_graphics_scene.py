@@ -1,3 +1,4 @@
+"Module for a graphical representation of a :class:`.Node`."
 import logging
 import math
 
@@ -18,10 +19,17 @@ log = logging.getLogger(__name__)
 
 
 class QDMGraphicsScene(QGraphicsScene):
+    "Class for graphical representation of a :class:`.Scene`."
     # item_selected = Signal()
     # items_deselected = Signal()
 
-    def __init__(self, scene: "Scene", parent: QObject | None = None):
+    def __init__(self, scene: "Scene", parent: QObject | None = None) -> None:
+        """
+        Initialize :class:`QDMGraphicsScene`.
+
+        :param scene: reference to a :class:`.Scene` instance
+        :param parent: parent widget or `None`
+        """
         super().__init__(parent)
 
         self.scene = scene
@@ -29,6 +37,12 @@ class QDMGraphicsScene(QGraphicsScene):
         # settings
         self.grid_size = 20
         self.grid_squares = 5
+
+        self._init_assets()
+        self.setBackgroundBrush(self._color_background)
+
+    def _init_assets(self) -> None:
+        "Set up colors and pens."
         self._color_background = QColor("#393939")
         self._color_light = QColor("#2f2f2f")
         self._color_dark = QColor("#292929")
@@ -38,25 +52,30 @@ class QDMGraphicsScene(QGraphicsScene):
         self._pen_dark = QPen(self._color_dark)
         self._pen_dark.setWidth(2)
 
-        self.setBackgroundBrush(self._color_background)
-
     @override
     def dragMoveEvent(self, event: "QGraphicsSceneDragDropEvent | None") -> None:
         "Skip drag move event so it is processed by parent widget."  # https://youtu.be/CX7ox9v4tpc?t=981
 
-    def set_rect(self, width: int, height: int):
+    # TODO: make scene infinite? https://doc.qt.io/qt-6/qgraphicsscene.html#sceneRect-prop
+    def set_rect(self, width: int, height: int) -> None:
         """
         Set scene rect with center in x=0, y=0.
+
+        :param width: width of the scene
+        :param height: height of the scene
         """
         self.setSceneRect(-width // 2, -height // 2, width, height)
 
-    def drawBackground(self, painter: QPainter, rect: QRectF) -> None:
+    @override
+    def drawBackground(self, painter: QPainter | None, rect: QRectF) -> None:
+        "Draw scene background (grid)."
+        assert painter
         super().drawBackground(painter, rect)
 
-        left = int(math.floor(rect.left()))
-        right = int(math.ceil(rect.right()))
-        top = int(math.floor(rect.top()))
-        bottom = int(math.ceil(rect.bottom()))
+        left = math.floor(rect.left())
+        right = math.ceil(rect.right())
+        top = math.floor(rect.top())
+        bottom = math.ceil(rect.bottom())
 
         first_left = left - (left % self.grid_size)
         first_top = top - (top % self.grid_size)
@@ -84,13 +103,14 @@ class QDMGraphicsScene(QGraphicsScene):
                 # see also sip.array https://github.com/pyqtgraph/pyqtgraph/blob/906749fc0ab1334a3323d6a9c973a8fad70f3a5b/pyqtgraph/Qt/internals.py#L82
                 painter.drawLines(*lines_light)
             else:
-                painter.drawLines(lines_light)
+                painter.drawLines(lines_light)  # pyright: ignore[reportArgumentType, reportCallIssue]
         if lines_dark:
             painter.setPen(self._pen_dark)
             if API_NAME.startswith("PyQt"):
                 painter.drawLines(*lines_dark)
             else:
-                painter.drawLines(lines_dark)
+                painter.drawLines(lines_dark)  # pyright: ignore[reportArgumentType, reportCallIssue]
 
-    def __del__(self):
+    def __del__(self) -> None:
+        "Graphics scene instance destruction event."
         log.debug("delete graphics scene")

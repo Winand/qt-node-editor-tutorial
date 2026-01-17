@@ -1,3 +1,4 @@
+"Module for the graphics view where a scene is displayed."
 import logging
 from collections.abc import Callable
 from enum import Enum, auto
@@ -35,7 +36,7 @@ class ViewStateMode(Enum):
     EDGE_DRAG = auto()  #: Edge drag state
     EDGE_CUT = auto()  #: Cutting edge state
 
-EDGE_DRAG_START_THRESHOLD = 10  # px
+EDGE_DRAG_START_THRESHOLD = 10  #: Minimal edge drag distance (logical units)
 
 type WeakListener[T, R] = ReferenceType[Callable[[T], R]]
 
@@ -57,7 +58,7 @@ class QDMGraphicsView(QGraphicsView):
         super().__init__(parent)
         self._scene = scene
 
-        self.init_ui()
+        self._init_ui()
         self.setScene(scene.gr_scene)
 
         self.mode = ViewStateMode.NO_OP  #: state of the graphics view
@@ -83,7 +84,7 @@ class QDMGraphicsView(QGraphicsView):
         self._drop_listeners: list[WeakListener[QDropEvent, None]] = []
         self._empty_space_listeners: list[WeakListener[QMouseEvent, bool]] = []
 
-    def init_ui(self) -> None:
+    def _init_ui(self) -> None:
         "Set up graphics view properties."
         # https://doc.qt.io/qt-6/qpainter.html#RenderHint-enum
         # HighQualityAntialiasing is obsolete
@@ -248,7 +249,6 @@ class QDMGraphicsView(QGraphicsView):
 
     def left_mouse_button_release(self, event: QMouseEvent) -> None:
         "Handle LMB release for :class:`ViewStateMode` modes."
-        print("LMBR")
         if event.modifiers() & Qt.KeyboardModifier.ShiftModifier:
             # Use Shift to select graphics items along with Ctrl
             event = self.modify_mouse_event(event,
@@ -309,6 +309,7 @@ class QDMGraphicsView(QGraphicsView):
                     print(f'    {edge}')
 
     def middle_mouse_button_release(self, event: QMouseEvent) -> None:
+        "Handle MMB release."
         super().mouseReleaseEvent(event)
 
     @override
@@ -331,7 +332,7 @@ class QDMGraphicsView(QGraphicsView):
 
         self.last_scene_mouse_position = self.mapToScene(event.pos())
 
-        self.scene_pos_changed.emit(
+        self.scene_pos_changed.emit(  # TODO: pass QPointF as is
             int(self.last_scene_mouse_position.x()),
             int(self.last_scene_mouse_position.y()),
         )
@@ -557,5 +558,5 @@ class QDMGraphicsView(QGraphicsView):
         super().contextMenuEvent(event)
 
     def __del__(self) -> None:
-        "View object destruction event."
+        "View instance destruction event."
         log.debug("delete graphics view")
