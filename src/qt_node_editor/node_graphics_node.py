@@ -3,7 +3,7 @@
 from typing import TYPE_CHECKING, override
 
 from qtpy.QtCore import QRectF, Qt
-from qtpy.QtGui import QBrush, QColor, QFont, QPainter, QPainterPath, QPen
+from qtpy.QtGui import QColor, QFont, QPainter, QPainterPath, QPen
 from qtpy.QtWidgets import (
     QGraphicsItem,
     QGraphicsProxyWidget,
@@ -13,6 +13,8 @@ from qtpy.QtWidgets import (
     QStyleOptionGraphicsItem,
     QWidget,
 )
+
+from qt_node_editor.utils import brush, color
 
 if TYPE_CHECKING:
     from qt_node_editor.node_node import Node
@@ -77,7 +79,7 @@ class QDMGraphicsNode(QGraphicsItem):
     def init_assets(self) -> None:
         "Initialize colors, pens, brushes."
         # QColor format: "#[AA]RRGGBB" https://doc.qt.io/qt-6/qcolor.html#fromString
-        self._color = QColor("#7f000000")
+        self._color = color("#0000007f")
         self._color_selected = QColor("#ffa637")
         self._color_hovered = QColor("#2879BC")
 
@@ -87,8 +89,8 @@ class QDMGraphicsNode(QGraphicsItem):
         self._pen_selected.setWidthF(2.0)
         self._pen_hovered = QPen(self._color_hovered)
         self._pen_hovered.setWidthF(2.0)
-        self._brush_title = QBrush(QColor("#313131"))
-        self._brush_background = QBrush(QColor("#E3212121"))
+        self._brush_title = brush("#313131")
+        self._brush_background = brush("#212121E3")
 
         self._title_color = Qt.GlobalColor.white
         # https://rigaux.org/font-family-compatibility-between-linux-.html

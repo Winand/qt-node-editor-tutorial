@@ -7,6 +7,7 @@ from pathlib import Path
 from types import MethodType
 from typing import Any, Generic, Type, TypeVar, cast
 
+from qtpy.QtGui import QBrush, QColor
 from qtpy.QtWidgets import QApplication
 
 log = logging.getLogger(__name__)
@@ -128,3 +129,22 @@ def load_stylesheets(*filenames: Path) -> None:
     cast(QApplication, QApplication.instance()).setStyleSheet(
         "\n".join(map(_load_stylesheet, filenames)),
     )
+
+
+def color(str_color: str) -> QColor:
+    """
+    Convert #RRGGBBAA to #AARRGGBB for ``QColor``.
+
+    QColor format: "#[AA]RRGGBB" https://doc.qt.io/qt-6/qcolor.html#fromString
+
+    :param str_color: color in #RRGGBBAA or other string format
+    """
+    rgba_len = 9  # len(#RRGGBBAA) == 9
+    if str_color.startswith("#") and len(str_color) == rgba_len:
+        return QColor(f"#{str_color[7:]}{str_color[1:7]}")
+    return QColor(str_color)
+
+
+def brush(str_color: str) -> QBrush:
+    "Initialize ``QBrush`` from string color."
+    return QBrush(color(str_color))

@@ -61,7 +61,7 @@ class QDMGraphicsSocket(QGraphicsItem):
     def init_assets(self) -> None:
         "Initialize internal objects like color, pen, brush."
         self._color_background = self._get_socket_color(self.socket_type)
-        self._color_outline = QColor("#FF000000")
+        self._color_outline = QColor("#000000")
 
         self._pen = QPen(self._color_outline)
         self._pen.setWidthF(self.outline_width)
