@@ -11,7 +11,7 @@ from qt_node_editor.node_graphics_node import QDMGraphicsNode
 
 if TYPE_CHECKING:
     from qt_node_editor.node_edge import EdgeSerialize
-    from qt_node_editor.node_node import NodeSerialize
+    from qt_node_editor.node_node import Node, NodeSerialize
     from qt_node_editor.node_scene import Scene, SceneSerialize
     from qt_node_editor.node_serializable import SerializableMap
     from qt_node_editor.node_socket import Socket
@@ -85,16 +85,21 @@ class SceneClipboard:
         """
         hashmap: SerializableMap = {}
         mouse_scene_pos = self.scene.get_view().last_scene_mouse_position
+        nodes_with_data: list[tuple[Node, NodeSerialize]] = []
         # see comment https://www.youtube.com/watch?v=PdqCogmBeXI&lc=UgwvzoSf2dfez6JDf4R4AaABAg
-        # TODO: graphical node width should be taken into account too
         minx = miny = math.inf
         maxx = maxy = -math.inf
         for node_data in data["nodes"]:
+            new_node = self.scene.get_node_type(node_data)(self.scene)
+            nodes_with_data.append((new_node, node_data))
+            w = node_data.get("width", new_node.size.width)
+            h = node_data.get("height", new_node.size.height)
+
             x, y = node_data["pos_x"], node_data["pos_y"]
             minx = min(minx, x)
-            maxx = max(maxx, x)
+            maxx = max(maxx, x + w)
             miny = min(miny, y)
-            maxy = max(maxy, y)
+            maxy = max(maxy, y + h)
         bbox_center_x = (minx + maxx) / 2
         bbox_center_y = (miny + maxy) / 2
 
@@ -104,8 +109,7 @@ class SceneClipboard:
         offset = QPointF(mouse_scene_pos.x() - bbox_center_x,
                          mouse_scene_pos.y() - bbox_center_y)
 
-        for node_data in data["nodes"]:
-            new_node = self.scene.get_node_type(node_data)(self.scene)
+        for new_node, node_data in nodes_with_data:
             new_node.deserialize(node_data, hashmap, restore_id=False)
             # new_node.gr_node.setSelected(True)  # @Winand: deselect prev. sel. first
 

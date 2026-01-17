@@ -5,12 +5,17 @@ import weakref
 from collections.abc import Callable, Iterator
 from pathlib import Path
 from types import MethodType
-from typing import Any, Generic, Type, TypeVar, cast
+from typing import Any, Generic, NamedTuple, Type, TypeVar, cast
 
 from qtpy.QtGui import QBrush, QColor
 from qtpy.QtWidgets import QApplication
 
 log = logging.getLogger(__name__)
+
+class Size(NamedTuple):
+    "Describes size with `width` and `height` fields."
+    width: float
+    height: float
 
 T = TypeVar("T")
 V = TypeVar("V")

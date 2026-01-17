@@ -14,7 +14,7 @@ from qtpy.QtWidgets import (
     QWidget,
 )
 
-from qt_node_editor.utils import brush, color
+from qt_node_editor.utils import Size, brush, color
 
 if TYPE_CHECKING:
     from qt_node_editor.node_node import Node
@@ -24,6 +24,7 @@ GraphicsItemFlag = QGraphicsItem.GraphicsItemFlag
 
 class QDMGraphicsNode(QGraphicsItem):
     "Representation of a node in a graphics scene."
+    DEFAULT_SIZE: Size = Size(180, 240)  #: default size of graphics node
 
     def __init__(self, node: "Node", parent: QGraphicsItem | None = None) -> None:
         """
@@ -68,8 +69,7 @@ class QDMGraphicsNode(QGraphicsItem):
 
     def init_sizes(self) -> None:
         "Set up size properties (width, height, padding, etc)."
-        self.width = 180
-        self.height = 240
+        self.width, self.height = self.DEFAULT_SIZE
         self.edge_roundness = 10.0
         self.edge_padding = 10.0
         self.title_height = 24.0
@@ -165,6 +165,12 @@ class QDMGraphicsNode(QGraphicsItem):
         )
         self.gr_content.setWidget(self.content)
 
+    @property
+    def size(self) -> Size:
+        "Graphical node dimensions."
+        return Size(self.width, self.height)
+
+    @override
     def paint(self, painter: QPainter | None, option: QStyleOptionGraphicsItem | None,
               widget: QWidget | None = None) -> None:  # required
         "Paint title, content and outline."

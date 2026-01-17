@@ -1,7 +1,7 @@
 "Module for the default node implementation."
 import logging
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, Any, TypedDict, overload, override
+from typing import TYPE_CHECKING, Any, NotRequired, TypedDict, overload, override
 
 from qtpy.QtCore import QPointF
 
@@ -13,6 +13,7 @@ from qt_node_editor.node_serializable import (
     SerializableMap,
 )
 from qt_node_editor.node_socket import Pos, Socket, SocketSerialize
+from qt_node_editor.utils import Size
 
 if TYPE_CHECKING:
     from qt_node_editor.node_edge import Edge
@@ -26,6 +27,18 @@ class NodeSerialize(TypedDict):
     title: str  #: node title
     pos_x: float  #: node X position on the scene
     pos_y: float  #: node Y position on the scene
+    width: NotRequired[float]
+    """
+    node width
+
+    .. note:: ;TODO: not serialized yet
+    """
+    height: NotRequired[float]
+    """
+    node height
+
+    .. note:: ;TODO: not serialized yet
+    """
     inputs: list[SocketSerialize]  #: input sockets of the node
     outputs: list[SocketSerialize]  #: output sockets of the node
     content: ContentSerialize  #: node content serialized
@@ -33,7 +46,7 @@ class NodeSerialize(TypedDict):
 
 class Node(Serializable):
     "Default node implementation."
-
+    GraphicsNodeType = QDMGraphicsNode  #: graphical implementation used by this node
     content: QDMContentWidget
 
     def __init__(self, scene: "Scene", title: str = "Undefined Node",
@@ -106,7 +119,7 @@ class Node(Serializable):
         #: instance of :class:`.QDMContentWidget` which is a container
         #: for the widgets inside of the node
         self.content = QDMContentWidget(self)
-        self.gr_node = QDMGraphicsNode(self)
+        self.gr_node = self.GraphicsNodeType(self)
 
     def init_settings(self) -> None:
         "Initialize node properties and socket options."
@@ -323,6 +336,11 @@ class Node(Serializable):
             "outputs": outputs,
             "content": self.content.serialize()
         }
+
+    @property
+    def size(self) -> Size:
+        "Graphical node dimensions."
+        return self.gr_node.size
 
     @override
     def deserialize(self, data: NodeSerialize, hashmap: SerializableMap, *,

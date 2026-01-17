@@ -14,6 +14,7 @@ from qt_node_editor.node_node import Node, NodeSerialize
 from qt_node_editor.node_scene import Scene
 from qt_node_editor.node_serializable import SerializableMap
 from qt_node_editor.node_socket import Pos
+from qt_node_editor.utils import Size
 
 log = logging.getLogger(__name__)
 
@@ -24,11 +25,11 @@ class CalcNodeSerialize(NodeSerialize):
 
 
 class CalcGraphicsNode(QDMGraphicsNode):
+    DEFAULT_SIZE = Size(160, 74)
+
     @override
     def init_sizes(self) -> None:
         super().init_sizes()
-        self.width = 160
-        self.height = 74
         self.edge_roundness = 6.0
         self.edge_padding = 0.0
         self.title_horizontal_padding = 8.0
