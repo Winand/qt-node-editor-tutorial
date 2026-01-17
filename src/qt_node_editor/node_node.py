@@ -345,7 +345,7 @@ class Node(Serializable):
                                 socket_type=socket_data["socket_type"],
                                 socket_count_on_side=len(data["inputs"]),
                                 is_input=True)  # FIXME: multi_edges=False?
-            new_socket.deserialize(socket_data, hashmap, restore_id)
+            new_socket.deserialize(socket_data, hashmap, restore_id=restore_id)
             self.inputs.append(new_socket)
 
         self.outputs = []
@@ -355,7 +355,7 @@ class Node(Serializable):
                                 socket_type=socket_data["socket_type"],
                                 socket_count_on_side=len(data["outputs"]),
                                 is_input=False)
-            new_socket.deserialize(socket_data, hashmap, restore_id)
+            new_socket.deserialize(socket_data, hashmap, restore_id=restore_id)
             self.outputs.append(new_socket)
 
         return self.content.deserialize(data["content"], hashmap)
