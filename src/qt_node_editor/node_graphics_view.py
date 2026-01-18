@@ -377,11 +377,17 @@ class QDMGraphicsView(QGraphicsView):
     def delete_selected(self) -> None:
         "Safely delete all selected items on the `Scene`."
         with self._scene.history.transaction("Delete selected", modified=True):
+            # WA: first remove nodes, which also removes dangling edges
+            # next remove remaining selected edges
+            for item in self._scene.gr_scene.selectedItems():
+                if isinstance(item, QDMGraphicsNode):
+                    item.node.remove()
             for item in self._scene.gr_scene.selectedItems():
                 if isinstance(item, QDMGraphicsEdge):
                     item.edge.remove()
-                elif isinstance(item, QDMGraphicsNode):
-                    item.node.remove()
+                else:
+                    msg = f"Unknown graphics item encountered: {item}"
+                    raise TypeError(msg)
 
     def debug_modifiers(self, event: QMouseEvent) -> str:
         "Check if Alt, Shift or Ctrl is pressed and return result as a string."

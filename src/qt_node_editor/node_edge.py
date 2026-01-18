@@ -193,7 +193,7 @@ class Edge(Serializable):
         self.disconnect_from_sockets()
         log.debug(" - remove gr_edge")
         self.scene.gr_scene.removeItem(self.gr_edge)  # TODO: move to Scene.remove_edge?
-        self.gr_edge = None
+        del self.gr_edge  # TODO: is reference removal required?
         log.debug(" - remove edge from scene")
         try:
             self.scene.remove_edge(self)
